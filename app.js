@@ -1783,7 +1783,12 @@ const CM = {
 const _origConfirmEvent = KIOSK.confirmEvent.bind(KIOSK);
 KIOSK.confirmEvent = function() {
   _origConfirmEvent();
-  const isCM = _kEvent === "Children's Ministry";
+  const isCM = _kEvent === "Children's Ministry" || _kEvent === 'Childrens Ministry';
   const btn = document.getElementById('cmKioskBtn');
   if (btn) btn.style.display = isCM ? 'flex' : 'none';
+};
+
+/* ── CHILDREN'S MINISTRY EVENT SELECTOR (avoids apostrophe in onclick) ── */
+KIOSK.selectCM = function(el) {
+  KIOSK.selectEvent(el, "Children's Ministry", '🧒', "Children's church check-in");
 };
