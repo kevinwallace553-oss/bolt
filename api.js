@@ -37,7 +37,7 @@ const API = {
   batchCheckIn:   (list, meta)=> gasRun('batchCheckInAPI', list, meta),
   getTodayCheckins:()         => gasRun('getCheckInsTodayAPI'),
   getDashboard:   ()          => gasRun('getDashboardData'),
-  getWeeklyReport:(offset)    => gasRun('getWeeklyCheckInsAPI', offset),
+  getWeeklyReport:(offset)    => gasRun('getWeeklyReportForPWA', offset),
 
   // Leaders
   getLeaders:     ()          => gasRun('getLeaders'),
