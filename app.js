@@ -209,7 +209,7 @@ const AUTH = {
       const r = await API.login(u,p);
       if(r?.success){
         SESSION.token=r.token; SESSION.name=r.name; SESSION.role=r.role; SESSION.username=r.username;
-        document.getElementById('homeName').textContent = 'Welcome, '+(r.name?.split(' ')[0]||r.username)+'!';
+        const _first=(r.name||r.username||'').split(' ')[0];const _el=document.getElementById('homeName');if(_el)_el.textContent=_first?`Welcome, ${_first}`:'Youth Check-In System';
         showView('vHome');
       } else this.showErr('loginErr', r?.error||'Invalid username or password.');
     } catch(e) { this.showErr('loginErr','Connection error — check your internet.'); }
@@ -1047,12 +1047,9 @@ DASH.loadAtRisk = async function() {
       el.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-icon">✅</div><p class="empty-txt">No at-risk students — great attendance!</p></div>';
       return;
     }
-    // Filter out students with no name
-    const validStudents = students.filter(s => (s.fullName||s.name||((s.firstName||'')+' '+(s.lastName||'')).trim()));
     el.innerHTML = `<div style="padding:16px;display:flex;flex-direction:column;gap:8px">${
-      validStudents.map(s => {
-        const name = s.fullName || s.name || ((s.firstName||'')+' '+(s.lastName||'')).trim() || '';
-        if (!name) return ''; // skip blanks
+      students.map(s => {
+        const name = s.name || ((s.firstName||'')+' '+(s.lastName||'')).trim() || 'Unknown';
         const pct  = Math.round(+(s.attendanceRate||s.rate||0));
         const weeks = s.weeksAbsent||s.missedWeeks||s.missed||0;
         const grade = s.grade||'';
@@ -1372,74 +1369,73 @@ const CM = {
   /* ── RENDER FAMILY LIST ── */
   render(families) {
     const el = document.getElementById('cmFamilyList');
-    if (!el) return;
     if (!families.length) {
-      el.innerHTML = `<div class="empty-state" style="padding:60px 20px">
-        <div class="empty-icon">${this._families.length ? '🔍' : '🧒'}</div>
-        <div class="k-empty-title">${this._families.length ? 'No families match' : 'No families registered yet'}</div>
-        <div class="k-empty-sub">${this._families.length ? 'Try a different name or phone number' : 'Tap <strong>+ Family</strong> to register your first family'}</div>
+      el.innerHTML = `<div class="empty-state" style="padding:50px 20px">
+        <div class="empty-icon">🔍</div>
+        <div class="k-empty-title">${this._families.length ? 'No families match' : 'No families yet'}</div>
+        <div class="k-empty-sub">${this._families.length ? 'Try a different search' : 'Tap "+ Family" to register your first family'}</div>
       </div>`;
       return;
     }
-    const today = new Date();
+
     el.innerHTML = families.map((f, fi) => {
-      const allIn  = f.children.length > 0 && f.children.every(c => this._checkedFamilies.has(c.id));
-      const someIn = f.children.some(c => this._checkedFamilies.has(c.id));
-      const checkedCount = f.children.filter(c => this._checkedFamilies.has(c.id)).length;
+      const isChecked = this._checkedFamilies.has(f.id);
       const init = initials(f.parentName);
-      const border = allIn ? 'rgba(16,185,129,0.55)' : someIn ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.12)';
-      return `<div style="background:var(--ink2);border:2px solid ${border};border-radius:22px;margin-bottom:12px;overflow:hidden;animation:fadeUp .25s ease both;animation-delay:${Math.min(fi,6)*0.05}s">
-        <div style="display:flex;align-items:center;gap:13px;padding:16px 18px;cursor:pointer" onclick="CM.toggleFamily('${f.id}')">
-          <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:17px;font-weight:900;color:#fff;flex-shrink:0;box-shadow:0 0 20px rgba(16,185,129,0.3)">${init}</div>
+      const allChecked = f.children.length > 0 && f.children.every(c => this._checkedFamilies.has(c.id));
+      return `
+      <div class="cm-family-card" style="background:var(--ink2);border:1px solid ${allChecked?'rgba(16,185,129,0.45)':'var(--rim)'};border-radius:20px;margin-bottom:10px;overflow:hidden;animation:fadeUp .25s ease both;animation-delay:${Math.min(fi,6)*0.05}s">
+        <!-- Family header -->
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--rim)" onclick="CM.toggleFamily('${f.id}')">
+          <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:16px;font-weight:800;flex-shrink:0;color:#fff">${init}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-family:var(--font);font-size:17px;font-weight:900;color:#fff;margin-bottom:3px">${f.parentName}</div>
-            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px">
-              ${f.phone ? `<span style="font-size:11px;color:var(--muted)">📞 ${f.phone}</span>` : ''}
-              ${f.email ? `<span style="font-size:11px;color:var(--muted)">✉️ ${f.email}</span>` : ''}
-              <span style="font-size:10px;font-weight:800;background:rgba(16,185,129,0.12);color:#6ee7b7;padding:2px 9px;border-radius:100px;border:1px solid rgba(16,185,129,0.25)">${f.children.length} child${f.children.length!==1?'ren':''}</span>
-              ${allIn ? `<span style="font-size:10px;font-weight:800;background:rgba(16,185,129,0.15);color:#6ee7b7;padding:2px 9px;border-radius:100px;border:1px solid rgba(16,185,129,0.4)">✅ All In</span>` : someIn ? `<span style="font-size:10px;font-weight:800;background:rgba(245,158,11,0.1);color:#fcd34d;padding:2px 9px;border-radius:100px;border:1px solid rgba(245,158,11,0.3)">${checkedCount}/${f.children.length} In</span>` : ''}
+            <div style="font-family:var(--font);font-size:15px;font-weight:800;color:#fff">${f.parentName}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              ${f.phone?`<span>📞 ${f.phone}</span>`:''}
+              ${f.email?`<span>✉️ ${f.email}</span>`:''}
+              <span style="color:#6ee7b7;font-weight:700">${f.children.length} child${f.children.length!==1?'ren':''}</span>
             </div>
           </div>
-          <div style="font-size:20px;color:var(--muted2);flex-shrink:0" id="cmArrow_${f.id}">›</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            ${allChecked?'<div style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:100px;padding:3px 10px;font-size:10px;font-weight:800;color:#6ee7b7">✅ All in</div>':''}
+            <div style="font-size:18px;color:var(--muted2)" id="cmArrow_${f.id}">›</div>
+          </div>
         </div>
-        <div id="cmChildren_${f.id}" style="display:none;border-top:1px solid rgba(16,185,129,0.12)">
-          ${f.children.length === 0
-            ? `<div style="padding:16px 20px;text-align:center;color:var(--muted);font-size:13px">No children yet — add one below</div>`
-            : f.children.map(ch => {
-              const cIn = this._checkedFamilies.has(ch.id);
-              const hasAllergy = ch.allergies && ch.allergies.toLowerCase() !== 'none' && ch.allergies.trim();
-              let isBday = false;
-              if (ch.dob) { try { const d=new Date(ch.dob); isBday=d.getMonth()===today.getMonth()&&d.getDate()===today.getDate(); } catch(e){} }
-              const safeId = ch.id.replace(/'/g,"\'");
-              const safeName = ch.name.replace(/'/g,"\'").replace(/"/g,'\"');
-              const safeFamId = f.id.replace(/'/g,"\'");
-              return `<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid rgba(16,185,129,0.08);cursor:pointer;transition:background .15s;${cIn?'background:rgba(16,185,129,0.06)':''}" onclick="CM.checkInChild('${safeId}','${safeFamId}','${safeName}')">
-                <div style="width:42px;height:42px;border-radius:12px;background:${cIn?'rgba(16,185,129,0.2)':gradientForName(ch.name)};display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid ${cIn?'rgba(16,185,129,0.5)':'transparent'}">${initials(ch.name)}</div>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:14px;font-weight:800;color:${cIn?'#6ee7b7':'#fff'};display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                    ${ch.firstName} ${ch.lastName}
-                    ${cIn ? '<span style="font-size:9px;font-weight:800;background:rgba(16,185,129,0.2);color:#6ee7b7;padding:2px 8px;border-radius:100px;border:1px solid rgba(16,185,129,0.4)">✅ IN</span>' : ''}
-                    ${isBday ? '<span style="font-size:9px;font-weight:800;background:rgba(245,158,11,0.15);color:#fcd34d;padding:2px 8px;border-radius:100px">🎂 Birthday!</span>' : ''}
-                  </div>
-                  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
-                    ${ch.grade ? `<span style="font-size:9px;font-weight:700;background:rgba(6,182,212,0.1);color:#67e8f9;padding:2px 8px;border-radius:100px;border:1px solid rgba(6,182,212,0.2)">Grade ${ch.grade}</span>` : ''}
-                    ${ch.room  ? `<span style="font-size:9px;font-weight:800;background:rgba(16,185,129,0.12);color:#6ee7b7;padding:2px 8px;border-radius:100px;border:1px solid rgba(16,185,129,0.25)">${ch.room}</span>` : ''}
-                    ${hasAllergy ? `<span style="font-size:9px;font-weight:700;background:rgba(249,115,22,0.12);color:#fdba74;padding:2px 8px;border-radius:100px;border:1px solid rgba(249,115,22,0.25)">⚠️ ${ch.allergies}</span>` : ''}
-                  </div>
+
+        <!-- Children list (hidden by default) -->
+        <div id="cmChildren_${f.id}" style="display:none">
+          ${f.children.length === 0 ? `
+          <div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:12px">
+            No children registered yet
+          </div>` : f.children.map(ch => {
+            const cChecked = this._checkedFamilies.has(ch.id);
+            const hasAllergy = ch.allergies && ch.allergies.toLowerCase() !== 'none' && ch.allergies.trim();
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--rim);cursor:pointer;transition:background .15s;${cChecked?'background:rgba(16,185,129,0.06)':''}" onclick="CM.checkInChild('${ch.id}','${f.id}','${ch.name.replace(/'/,"\\'")}')">
+              <div style="width:38px;height:38px;border-radius:50%;background:${gradientForName(ch.name)};display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:12px;font-weight:800;color:#fff;flex-shrink:0">${initials(ch.name)}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+                  ${ch.name}
+                  ${cChecked?'<span style="font-size:9px;font-weight:800;background:rgba(16,185,129,.15);color:#6ee7b7;padding:2px 7px;border-radius:100px;border:1px solid rgba(16,185,129,.3)">✅ In</span>':''}
                 </div>
-                <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
-                  <button onclick="CM.openPrint('${safeFamId}')" title="Print tag" style="width:30px;height:30px;border-radius:8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fcd34d;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">🏷️</button>
-                  <button onclick="CM.editChild('${safeId}','${safeFamId}')" title="Edit" style="width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">✏️</button>
-                  <button onclick="CM.deleteChildBtn('${safeId}','${safeName}')" title="Remove" style="width:30px;height:30px;border-radius:8px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">🗑️</button>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  ${ch.grade?`<span>Grade ${ch.grade}</span>`:''}
+                  ${ch.room?`<span style="background:rgba(6,182,212,.1);color:#67e8f9;padding:1px 7px;border-radius:100px;border:1px solid rgba(6,182,212,.2);font-weight:700">${ch.room}</span>`:''}
+                  ${hasAllergy?`<span style="background:rgba(249,115,22,.12);color:#fdba74;padding:1px 7px;border-radius:100px;border:1px solid rgba(249,115,22,.25);font-weight:700">⚠️ ${ch.allergies}</span>`:''}
                 </div>
-              </div>`;
-            }).join('')}
-          <div style="display:flex;gap:8px;padding:12px 16px;background:rgba(6,14,16,0.4)">
-            <button onclick="CM.checkInAll('${f.id}')" style="flex:1;padding:10px;border-radius:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#6ee7b7;font-family:var(--body);font-size:13px;font-weight:800;cursor:pointer">✅ Check In All</button>
-            <button onclick="CM.openPrint('${f.id}')" style="flex:1;padding:10px;border-radius:12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:#fcd34d;font-family:var(--body);font-size:13px;font-weight:800;cursor:pointer">🏷️ Print Tags</button>
-            <button onclick="CM.addChildToFamily('${f.id}')" style="padding:10px 14px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#6ee7b7;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer">+ Child</button>
-            <button onclick="CM.editFamily('${f.id}')" style="padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer">✏️</button>
-            <button onclick="CM.deleteFamilyBtn('${f.id}','${f.parentName.replace(/'/g,"\'")}')" style="padding:10px 12px;border-radius:12px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;font-family:var(--body);font-size:12px;cursor:pointer">🗑️</button>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+                <button onclick="CM.editChild('${ch.id}','${f.id}')" style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✏️</button>
+                <button onclick="CM.deleteChildBtn('${ch.id}','${ch.name.replace(/'/,"\\'")}')" style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">🗑️</button>
+              </div>
+            </div>`;
+          }).join('')}
+
+          <!-- Family action bar -->
+          <div style="display:flex;gap:8px;padding:10px 14px;background:rgba(6,14,16,0.5)">
+            <button onclick="CM.checkInAll('${f.id}')" style="flex:1;padding:9px;border-radius:10px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;font-family:var(--body);font-size:12px;font-weight:800;cursor:pointer">✅ Check In All</button>
+            <button onclick="CM.openPrint('${f.id}')" style="flex:1;padding:9px;border-radius:10px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:#67e8f9;font-family:var(--body);font-size:12px;font-weight:800;cursor:pointer">🏷️ Name Tags</button>
+            <button onclick="CM.addChildToFamily('${f.id}')" style="padding:9px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer">+ Child</button>
+            <button onclick="CM.editFamily('${f.id}')" style="padding:9px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer">✏️</button>
+            <button onclick="CM.deleteFamilyBtn('${f.id}','${f.parentName.replace(/'/,"\\'")}')" style="padding:9px 11px;border-radius:10px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#fca5a5;font-family:var(--body);font-size:12px;cursor:pointer">🗑️</button>
           </div>
         </div>
       </div>`;
@@ -1720,66 +1716,61 @@ const CM = {
   printTags() {
     const family = this._printFamily;
     if (!family || !family.children.length) return;
-    const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const time  = new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
     const tagsHTML = family.children.map(child => {
-      const hasAllergy = child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim();
-      return `
-      <div class="tag">
-        <div class="tag-stripe"></div>
-        <div class="tag-label">CHILDREN'S MINISTRY</div>
-        <div class="tag-name">${child.firstName}</div>
-        <div class="tag-last">${child.lastName}</div>
-        ${child.room ? `<div class="tag-room">${child.room}</div>` : ''}
-        <div class="tag-grade">Grade ${child.grade||'—'}</div>
-        <div class="tag-divider"></div>
-        <div class="tag-parent-label">PARENT / GUARDIAN</div>
-        <div class="tag-parent">${family.parentName}</div>
-        <div class="tag-phone">${family.phone}</div>
-        ${hasAllergy ? `<div class="tag-allergy">⚠️ ALLERGY: ${child.allergies}</div>` : ''}
-        <div class="tag-date">${today}</div>
-      </div>`;
+      const hasAllergy = child.allergies && child.allergies.toLowerCase()!=='none' && child.allergies.trim();
+      return '<div class="tag">'
+        + '<div class="ts"></div>'
+        + '<div class="tc">'
+        +   '<div class="tm">CHILDREN&#8217;S MINISTRY</div>'
+        +   '<div class="tfn">' + child.firstName + '</div>'
+        +   '<div class="tln">' + child.lastName + '</div>'
+        +   '<div class="tb">'
+        +     (child.room ? '<span class="tbr">' + child.room + '</span>' : '')
+        +     (child.grade ? '<span class="tbg">Grade ' + child.grade + '</span>' : '')
+        +   '</div>'
+        +   (hasAllergy ? '<div class="tal">⚠️ ' + child.allergies + '</div>' : '')
+        + '</div>'
+        + '<div class="tdiv"></div>'
+        + '<div class="tp">'
+        +   '<div class="tpl">PARENT / GUARDIAN</div>'
+        +   '<div class="tpn">' + family.parentName + '</div>'
+        +   '<div class="tph">' + family.phone + '</div>'
+        +   '<div class="tdt">' + today + ' · ' + time + '</div>'
+        + '</div>'
+        + '</div>';
     }).join('');
-
-    const win = window.open('', '_blank', 'width=800,height=600');
-    win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Name Tags — ${family.parentName} Family</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h2 { font-size: 16px; color: #333; margin-bottom: 16px; text-align: center; }
-    .tags-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
-    .tag { width: 250px; background: #fff; border: 3px solid #0d9488; border-radius: 16px; padding: 18px 20px; text-align: center; page-break-inside: avoid; position: relative; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-    .tag-stripe { position: absolute; top: 0; left: 0; right: 0; height: 9px; background: linear-gradient(90deg, #0d9488, #06b6d4); }
-    .tag-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: #0d9488; margin: 10px 0 7px; }
-    .tag-name { font-size: 34px; font-weight: 900; color: #111; line-height: 1; margin-bottom: 3px; }
-    .tag-last { font-size: 16px; font-weight: 700; color: #444; margin-bottom: 7px; }
-    .tag-room { display: inline-block; background: #e6fffa; border: 1.5px solid #0d9488; border-radius: 100px; padding: 3px 14px; font-size: 12px; font-weight: 800; color: #0d9488; margin-bottom: 5px; }
-    .tag-grade { font-size: 11px; color: #666; margin-bottom: 5px; font-weight: 600; }
-    .tag-divider { border-top: 1.5px dashed #ddd; margin: 8px 0; padding-top: 8px; }
-    .tag-parent-label { font-size: 8px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #999; margin-bottom: 3px; }
-    .tag-parent { font-size: 14px; font-weight: 700; color: #222; }
-    .tag-phone { font-size: 11px; color: #555; margin-top: 2px; }
-    .tag-allergy { background: #fff5f5; border: 1.5px solid #ef4444; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 800; color: #dc2626; margin-top: 8px; }
-    .tag-date { font-size: 9px; color: #bbb; margin-top: 8px; }
-    @media print {
-      body { padding: 10px; background: white; }
-      h2 { display: none; }
-      .tags-grid { gap: 12px; }
-      .tag { box-shadow: none; border: 2.5px solid #0d9488; }
-    }
-  </style>
-</head>
-<body>
-  <h2>Name Tags — ${family.parentName} Family &nbsp;|&nbsp; ${today}</h2>
-  <div class="tags-grid">${tagsHTML}</div>
-  <script>window.onload = function(){ window.print(); }</script>
-</body>
-</html>`);
+    const css = '*{box-sizing:border-box;margin:0;padding:0}'
+      + 'body{font-family:Arial,sans-serif;background:#f0f0f0;padding:20px}'
+      + 'h2{text-align:center;font-size:14px;color:#444;margin-bottom:20px}'
+      + '.grid{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}'
+      + '.tag{width:260px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.12);page-break-inside:avoid}'
+      + '.ts{height:10px;background:linear-gradient(90deg,#10b981,#06b6d4)}'
+      + '.tc{padding:18px 20px 14px;text-align:center}'
+      + '.tm{font-size:8px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#10b981;margin-bottom:10px}'
+      + '.tfn{font-size:42px;font-weight:900;color:#111;line-height:1;margin-bottom:2px}'
+      + '.tln{font-size:18px;font-weight:700;color:#333;margin-bottom:10px}'
+      + '.tb{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}'
+      + '.tbr{font-size:10px;font-weight:800;padding:3px 12px;border-radius:100px;background:#ecfdf5;border:1.5px solid #10b981;color:#059669}'
+      + '.tbg{font-size:10px;font-weight:800;padding:3px 12px;border-radius:100px;background:#eff6ff;border:1.5px solid #3b82f6;color:#1d4ed8}'
+      + '.tal{background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:5px 12px;font-size:10px;font-weight:800;color:#dc2626;margin-top:4px;display:inline-block}'
+      + '.tdiv{height:1px;background:repeating-linear-gradient(90deg,#ddd 0,#ddd 6px,transparent 6px,transparent 12px);margin:0 16px}'
+      + '.tp{padding:12px 20px 16px;text-align:center;background:#fafafa}'
+      + '.tpl{font-size:7px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#999;margin-bottom:5px}'
+      + '.tpn{font-size:16px;font-weight:700;color:#222;margin-bottom:2px}'
+      + '.tph{font-size:12px;color:#555;margin-bottom:5px}'
+      + '.tdt{font-size:9px;color:#bbb}'
+      + '@media print{body{background:#fff;padding:8px}h2{display:none}.grid{gap:10px}.tag{box-shadow:none;border:1px solid #ddd}}';
+    const win = window.open('','_blank','width=900,height=700');
+    win.document.write('<!DOCTYPE html><html><head><title>Name Tags</title><style>'+css+'</style></head><body>'
+      + '<h2>Children Ministry - '+family.parentName+' Family - '+today+'</h2>'
+      + '<div class="grid">'+tagsHTML+'</div>'
+      + '<scr'+'ipt>window.onload=function(){window.print()}<'+'/scr'+'ipt>'
+      + '</body></html>');
     win.document.close();
     closeModal('cmPrintModal');
-    toast('🖨️ Print dialog opened', 'ok');
+    toast('🖨️ Print dialog opened','ok');
   }
 };
 
@@ -1787,82 +1778,46 @@ const CM = {
 const _origConfirmEvent = KIOSK.confirmEvent.bind(KIOSK);
 KIOSK.confirmEvent = function() {
   _origConfirmEvent();
-  const isCM = _kEvent === "Children's Ministry" || _kEvent === 'Childrens Ministry';
+  const isCM = _kEvent === "Children's Ministry";
   const btn = document.getElementById('cmKioskBtn');
   if (btn) btn.style.display = isCM ? 'flex' : 'none';
-};
-
-/* ── CHILDREN'S MINISTRY EVENT SELECTOR (avoids apostrophe in onclick) ── */
-KIOSK.selectCM = function(el) {
-  KIOSK.selectEvent(el, "Children's Ministry", '🧒', "Children's church check-in");
-};
-
-
-/* ── SHOW CM FROM HOME ── */
-function showCM() {
-  showView('vCM');
-  CM.load();
-}
-
-/* ── CM: PRINT ALL CHECKED-IN FAMILY TAGS ── */
-CM.printAllTags = function() {
-  const checkedFamilies = this._families.filter(f =>
-    f.children.some(c => this._checkedFamilies.has(c.id))
-  );
-  if (!checkedFamilies.length) {
-    toast('⚠️ No checked-in children to print tags for', 'err');
-    return;
-  }
-  const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-  const tagsHTML = checkedFamilies.flatMap(family =>
-    family.children
-      .filter(c => this._checkedFamilies.has(c.id))
-      .map(child => {
-        const hasAllergy = child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim();
-        return `<div class="tag">
-          <div class="tag-stripe"></div>
-          <div class="tag-label">CHILDREN'S MINISTRY</div>
-          <div class="tag-name">${child.firstName}</div>
-          <div class="tag-last">${child.lastName}</div>
-          ${child.room ? `<div class="tag-room">${child.room}</div>` : ''}
-          <div class="tag-grade">Grade ${child.grade||'—'}</div>
-          <div class="tag-divider"></div>
-          <div class="tag-parent-label">PARENT / GUARDIAN</div>
-          <div class="tag-parent">${family.parentName}</div>
-          <div class="tag-phone">${family.phone}</div>
-          ${hasAllergy ? `<div class="tag-allergy">⚠️ ALLERGY: ${child.allergies}</div>` : ''}
-          <div class="tag-date">${today}</div>
-        </div>`;
-      })
+};CM.printAllTags = function() {
+  const checked = this._families.filter(f=>f.children.some(ch=>this._checkedFamilies.has(ch.id)));
+  if (!checked.length) { toast('⚠️ No checked-in children yet','err'); return; }
+  const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const time  = new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const tagsHTML = checked.flatMap(family =>
+    family.children.filter(ch=>this._checkedFamilies.has(ch.id)).map(child => {
+      const hasAllergy = child.allergies && child.allergies.toLowerCase()!=='none' && child.allergies.trim();
+      return '<div class="tag">'
+        + '<div class="ts"></div>'
+        + '<div class="tc">'
+        +   "<div class=\"tm\">CHILDRENS MINISTRY</div>"
+        +   '<div class="tfn">'+child.firstName+'</div>'
+        +   '<div class="tln">'+child.lastName+'</div>'
+        +   '<div class="tb">'
+        +   (child.room?'<span class="tbr">'+child.room+'</span>':'')
+        +   (child.grade?'<span class="tbg">Grade '+child.grade+'</span>':'')
+        +   '</div>'
+        +   (hasAllergy?'<div class="tal">⚠️ '+child.allergies+'</div>':'')
+        + '</div>'
+        + '<div class="tdiv"></div>'
+        + '<div class="tp">'
+        +   '<div class="tpl">PARENT / GUARDIAN</div>'
+        +   '<div class="tpn">'+family.parentName+'</div>'
+        +   '<div class="tph">'+family.phone+'</div>'
+        +   '<div class="tdt">'+today+' · '+time+'</div>'
+        + '</div>'
+        + '</div>';
+    })
   ).join('');
-
-  const win = window.open('', '_blank', 'width=900,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><title>Name Tags — ${today}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px}
-  h2{font-size:15px;color:#333;margin-bottom:16px;text-align:center}
-  .tags-grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
-  .tag{width:250px;background:#fff;border:3px solid #10b981;border-radius:16px;padding:18px 20px;text-align:center;page-break-inside:avoid;position:relative;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,0.1)}
-  .tag-stripe{position:absolute;top:0;left:0;right:0;height:9px;background:linear-gradient(90deg,#10b981,#06b6d4)}
-  .tag-label{font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#10b981;margin:10px 0 7px}
-  .tag-name{font-size:36px;font-weight:900;color:#111;line-height:1;margin-bottom:2px}
-  .tag-last{font-size:15px;font-weight:700;color:#444;margin-bottom:7px}
-  .tag-room{display:inline-block;background:#ecfdf5;border:1.5px solid #10b981;border-radius:100px;padding:3px 14px;font-size:12px;font-weight:800;color:#10b981;margin-bottom:5px}
-  .tag-grade{font-size:11px;color:#666;margin-bottom:5px;font-weight:600}
-  .tag-divider{border-top:1.5px dashed #ddd;margin:8px 0;padding-top:8px}
-  .tag-parent-label{font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#999;margin-bottom:3px}
-  .tag-parent{font-size:14px;font-weight:700;color:#222}
-  .tag-phone{font-size:11px;color:#555;margin-top:2px}
-  .tag-allergy{background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:800;color:#dc2626;margin-top:8px}
-  .tag-date{font-size:9px;color:#bbb;margin-top:8px}
-  @media print{body{padding:8px;background:#fff}h2{display:none}.tags-grid{gap:10px}.tag{box-shadow:none;border:2.5px solid #10b981}}
-</style></head><body>
-<h2>🧒 Children's Ministry Name Tags &nbsp;|&nbsp; ${today} &nbsp;|&nbsp; ${checkedFamilies.reduce((a,f)=>a+f.children.filter(c=>this._checkedFamilies.has(c.id)).length,0)} children</h2>
-<div class="tags-grid">${tagsHTML}</div>
-<script>window.onload=function(){window.print()}<\/script>
-</body></html>`);
+  const css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f0f0f0;padding:20px}h2{text-align:center;font-size:14px;color:#444;margin-bottom:20px}.grid{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.tag{width:260px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.12);page-break-inside:avoid}.ts{height:10px;background:linear-gradient(90deg,#10b981,#06b6d4)}.tc{padding:18px 20px 14px;text-align:center}.tm{font-size:8px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#10b981;margin-bottom:10px}.tfn{font-size:42px;font-weight:900;color:#111;line-height:1;margin-bottom:2px}.tln{font-size:18px;font-weight:700;color:#333;margin-bottom:10px}.tb{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}.tbr{font-size:10px;font-weight:800;padding:3px 12px;border-radius:100px;background:#ecfdf5;border:1.5px solid #10b981;color:#059669}.tbg{font-size:10px;font-weight:800;padding:3px 12px;border-radius:100px;background:#eff6ff;border:1.5px solid #3b82f6;color:#1d4ed8}.tal{background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:5px 12px;font-size:10px;font-weight:800;color:#dc2626;margin-top:4px;display:inline-block}.tdiv{height:1px;background:repeating-linear-gradient(90deg,#ddd 0,#ddd 6px,transparent 6px,transparent 12px);margin:0 16px}.tp{padding:12px 20px 16px;text-align:center;background:#fafafa}.tpl{font-size:7px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#999;margin-bottom:5px}.tpn{font-size:16px;font-weight:700;color:#222;margin-bottom:2px}.tph{font-size:12px;color:#555;margin-bottom:5px}.tdt{font-size:9px;color:#bbb}@media print{body{background:#fff;padding:8px}h2{display:none}.grid{gap:10px}.tag{box-shadow:none;border:1px solid #ddd}}';
+  const total=checked.reduce((a,f)=>a+f.children.filter(ch=>this._checkedFamilies.has(ch.id)).length,0);
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write('<!DOCTYPE html><html><head><title>Name Tags</title><style>'+css+'</style></head><body><h2>🧒 Childrens Ministry · '+total+' children · '+today+'</h2><div class="grid">'+tagsHTML+'</div><scr'+'ipt>window.onload=function(){window.print()}<'+'/scr'+'ipt></body></html>');
   win.document.close();
-  toast('🖨️ Printing all checked-in name tags', 'ok');
+  toast('🖨️ Printing all name tags','ok');
 };
 
+function showCM() { showView('vCM'); CM.load(); }
+KIOSK.selectCM = function(el) { KIOSK.selectEvent(el, "Childrens Ministry", '🧒', "Childrens church check-in"); };
