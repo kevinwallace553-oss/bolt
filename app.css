@@ -692,3 +692,99 @@ body.offline .offline-badge { display: block; }
 #installBanner {
   animation: slideUp .4s cubic-bezier(0.22,0.68,0,1.1) both;
 }
+
+/* ═══ ORIENTATION & MOBILE LAYOUT FIXES ═══════════════════════════════ */
+
+/* Force portrait on narrow screens regardless of landscape class */
+@media(max-width:600px){
+  .k-layout{flex-direction:column!important}
+  .k-side{flex-direction:row!important;width:100%!important;height:auto!important;border-right:none!important;border-bottom:1px solid var(--rim)!important;padding:10px 14px!important;padding-top:calc(10px + var(--safe-t))!important;gap:10px!important;overflow:hidden!important;overflow-x:auto!important;flex-shrink:0!important}
+  .k-side::after{bottom:0!important;top:auto!important;right:auto!important;left:0!important;width:100%!important;height:1px!important}
+  .k-logo-box{width:36px!important;height:36px!important;border-radius:10px!important;flex-shrink:0!important}
+  .k-logo-box img{padding:4px!important}
+  .k-brand-text{text-align:left!important;flex:none!important;min-width:0!important}
+  .k-brand-name{font-size:14px!important;white-space:nowrap!important}
+  .k-brand-tag{font-size:7px!important;letter-spacing:1.5px!important}
+  .k-stats-row{display:none!important}
+  .k-leader-box{display:none!important}
+  .k-side-btns{flex-direction:row!important;width:auto!important;margin-top:0!important;margin-left:auto!important;flex-shrink:0!important;gap:6px!important}
+  .k-side-btn{padding:6px 10px!important;font-size:10px!important}
+  .k-main{padding:10px!important;padding-bottom:calc(10px + var(--safe-b))!important;gap:8px!important}
+  .k-search{padding:12px 40px!important;font-size:14px!important}
+  .k-actions{grid-template-columns:1fr 1fr!important;gap:6px!important}
+  .k-btn{padding:10px 8px!important;font-size:12px!important;gap:4px!important}
+}
+
+/* Tablet portrait (600-900px) */
+@media(min-width:601px) and (max-width:899px) and (orientation:portrait){
+  .k-layout{flex-direction:column!important}
+  .k-side{flex-direction:row!important;width:100%!important;height:auto!important;border-right:none!important;border-bottom:1px solid var(--rim)!important;padding:12px 18px!important;padding-top:calc(12px + var(--safe-t))!important;gap:14px!important;flex-shrink:0!important}
+  .k-side::after{bottom:0!important;top:auto!important;right:auto!important;left:0!important;width:100%!important;height:1px!important}
+  .k-stats-row{display:none!important}
+  .k-side-btns{margin-left:auto!important;flex-direction:row!important;width:auto!important;margin-top:0!important}
+}
+
+/* Landscape kiosk on tablet/desktop */
+@media(min-width:700px) and (orientation:landscape){
+  .k-layout{flex-direction:row!important}
+  .k-side{flex-direction:column!important;width:260px!important;height:100%!important;border-right:1px solid var(--rim)!important;border-bottom:none!important;padding:24px 18px!important;padding-top:calc(24px + var(--safe-t))!important;overflow-y:auto!important;gap:18px!important;flex-shrink:0!important}
+  .k-stats-row{display:flex!important}
+  .k-leader-box{display:block!important}
+  .k-side-btns{flex-direction:column!important;width:100%!important;margin-top:auto!important}
+}
+
+/* Dashboard responsive fixes */
+@media(max-width:899px){
+  .dash-body{display:flex!important;flex-direction:column!important;gap:12px!important;padding:12px!important}
+  .stat-strip{grid-template-columns:repeat(2,1fr)!important}
+  .dash-btns .d-btn span{display:none}
+}
+@media(max-width:480px){
+  .stat-strip{grid-template-columns:1fr 1fr!important}
+  .stat-val{font-size:26px!important}
+  .dash-topbar{padding:10px 12px!important;padding-top:calc(10px + var(--safe-t))!important;gap:7px!important}
+  .dash-brand{font-size:12px!important}
+  .d-btn{padding:5px 8px!important;font-size:10px!important;gap:3px!important}
+  .modal-sheet{padding-left:14px!important;padding-right:14px!important}
+  .auth-card{padding:28px 20px!important}
+  .ll-card{padding:28px 22px!important}
+  .ep-card{padding:26px 18px!important}
+  .home-brand{font-size:28px!important}
+  .home-cards{gap:10px!important}
+  .home-card{padding:22px 14px!important}
+  .hc-icon{font-size:30px!important;margin-bottom:10px!important}
+  .hc-name{font-size:16px!important}
+}
+
+/* Small phones */
+@media(max-width:360px){
+  .auth-card{padding:22px 16px!important}
+  .home-brand{font-size:24px!important}
+  .stat-val{font-size:22px!important}
+  .k-btn{font-size:11px!important;padding:9px 6px!important}
+}
+
+/* Fix view overflow for scrollable views */
+#vAuth,#vHome{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+#vKiosk{overflow:hidden!important}
+#vDash{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+
+/* Fix batch modal on small screens */
+@media(max-width:480px){
+  .batch-title{font-size:13px!important}
+  .batch-sel-lbl{display:none!important}
+  .batch-go{padding:7px 12px!important;font-size:12px!important}
+  .batch-cancel{padding:7px 10px!important;font-size:11px!important}
+}
+
+/* Fix drawer on small screens */
+@media(max-width:480px){
+  .drawer{width:100%!important;max-width:100%!important;border-left:none!important;border-top:1px solid var(--rim)!important;top:auto!important;height:80vh!important;transform:translateY(100%)!important;border-radius:24px 24px 0 0!important}
+  .drawer.open{transform:translateY(0)!important}
+}
+
+/* Prevent content from being hidden under notches */
+.k-main,#kResults{padding-left:calc(var(--safe-l) + 16px)!important;padding-right:calc(var(--safe-r) + 16px)!important}
+@media(max-width:600px){
+  .k-main,.k-main>#kResults{padding-left:10px!important;padding-right:10px!important}
+}
