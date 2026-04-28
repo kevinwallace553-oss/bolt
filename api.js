@@ -52,3 +52,14 @@ const API = {
 /* ── OFFLINE BODY CLASS ── */
 window.addEventListener('online',  () => document.body.classList.remove('offline'));
 window.addEventListener('offline', () => document.body.classList.add('offline'));
+
+// Children's Ministry — Family Registry
+API.getFamilies       = ()          => gasRun('getFamiliesAPI');
+API.searchFamilies    = (q)         => gasRun('searchFamiliesAPI', q);
+API.addFamily         = (data)      => gasRun('addFamilyAPI', data);
+API.addChild          = (data)      => gasRun('addChildAPI', data);
+API.editFamily        = (id, data)  => gasRun('editFamilyAPI', id, data);
+API.editChild         = (id, data)  => gasRun('editChildAPI', id, data);
+API.deleteFamily      = (id)        => gasRun('deleteFamilyAPI', id);
+API.deleteChild       = (id)        => gasRun('deleteChildAPI', id);
+API.checkInFamily     = (id, meta)  => gasRun('checkInFamilyAPI', id, meta);

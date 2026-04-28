@@ -1302,3 +1302,488 @@ DASH.downloadReport = async function() {
   }
   hideSaving();
 };
+
+/* ════════════════════════════════════════════════════
+   CHILDREN'S MINISTRY (CM) MODULE
+════════════════════════════════════════════════════ */
+const CM = {
+  _families: [],
+  _filtered: [],
+  _checkedFamilies: new Set(),
+  _printFamily: null,
+
+  /* ── OPEN FROM KIOSK ── */
+  openKiosk() {
+    showView('vCM');
+    this.load();
+  },
+
+  /* ── LOAD ALL FAMILIES ── */
+  async load() {
+    try {
+      showSaving('Loading families…');
+      const r = await API.getFamilies();
+      this._families = r?.families || [];
+      this._filtered = [...this._families];
+      this.updateStats();
+      this.render(this._filtered);
+    } catch(e) {
+      toast('⚠️ Failed to load families', 'err');
+    }
+    hideSaving();
+  },
+
+  updateStats() {
+    const totalChildren = this._families.reduce((a,f)=>a+f.children.length, 0);
+    const el1 = document.getElementById('cmStatFamilies');
+    const el2 = document.getElementById('cmStatChildren');
+    if(el1) el1.textContent = this._families.length;
+    if(el2) el2.textContent = totalChildren;
+  },
+
+  /* ── SEARCH ── */
+  search(q) {
+    document.getElementById('cmClear').classList.toggle('show', q.length>0);
+    if (!q.trim()) {
+      this._filtered = [...this._families];
+    } else {
+      const ql = q.toLowerCase().replace(/\D/g,'');
+      const qt = q.toLowerCase();
+      this._filtered = this._families.filter(f =>
+        f.parentName.toLowerCase().includes(qt) ||
+        f.phone.replace(/\D/g,'').includes(ql) ||
+        f.email.toLowerCase().includes(qt) ||
+        f.children.some(c => c.name.toLowerCase().includes(qt))
+      );
+    }
+    this.render(this._filtered);
+  },
+
+  clearSearch() {
+    document.getElementById('cmSearch').value = '';
+    document.getElementById('cmClear').classList.remove('show');
+    this._filtered = [...this._families];
+    this.render(this._filtered);
+  },
+
+  /* ── RENDER FAMILY LIST ── */
+  render(families) {
+    const el = document.getElementById('cmFamilyList');
+    if (!families.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:50px 20px">
+        <div class="empty-icon">🔍</div>
+        <div class="k-empty-title">${this._families.length ? 'No families match' : 'No families yet'}</div>
+        <div class="k-empty-sub">${this._families.length ? 'Try a different search' : 'Tap "+ Family" to register your first family'}</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = families.map((f, fi) => {
+      const isChecked = this._checkedFamilies.has(f.id);
+      const init = initials(f.parentName);
+      const allChecked = f.children.length > 0 && f.children.every(c => this._checkedFamilies.has(c.id));
+      return `
+      <div class="cm-family-card" style="background:var(--ink2);border:1px solid ${allChecked?'rgba(16,185,129,0.45)':'var(--rim)'};border-radius:20px;margin-bottom:10px;overflow:hidden;animation:fadeUp .25s ease both;animation-delay:${Math.min(fi,6)*0.05}s">
+        <!-- Family header -->
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--rim)" onclick="CM.toggleFamily('${f.id}')">
+          <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:16px;font-weight:800;flex-shrink:0;color:#fff">${init}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--font);font-size:15px;font-weight:800;color:#fff">${f.parentName}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              ${f.phone?`<span>📞 ${f.phone}</span>`:''}
+              ${f.email?`<span>✉️ ${f.email}</span>`:''}
+              <span style="color:#6ee7b7;font-weight:700">${f.children.length} child${f.children.length!==1?'ren':''}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            ${allChecked?'<div style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:100px;padding:3px 10px;font-size:10px;font-weight:800;color:#6ee7b7">✅ All in</div>':''}
+            <div style="font-size:18px;color:var(--muted2)" id="cmArrow_${f.id}">›</div>
+          </div>
+        </div>
+
+        <!-- Children list (hidden by default) -->
+        <div id="cmChildren_${f.id}" style="display:none">
+          ${f.children.length === 0 ? `
+          <div style="padding:14px 16px;text-align:center;color:var(--muted);font-size:12px">
+            No children registered yet
+          </div>` : f.children.map(ch => {
+            const cChecked = this._checkedFamilies.has(ch.id);
+            const hasAllergy = ch.allergies && ch.allergies.toLowerCase() !== 'none' && ch.allergies.trim();
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--rim);cursor:pointer;transition:background .15s;${cChecked?'background:rgba(16,185,129,0.06)':''}" onclick="CM.checkInChild('${ch.id}','${f.id}','${ch.name.replace(/'/,"\\'")}')">
+              <div style="width:38px;height:38px;border-radius:50%;background:${gradientForName(ch.name)};display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:12px;font-weight:800;color:#fff;flex-shrink:0">${initials(ch.name)}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+                  ${ch.name}
+                  ${cChecked?'<span style="font-size:9px;font-weight:800;background:rgba(16,185,129,.15);color:#6ee7b7;padding:2px 7px;border-radius:100px;border:1px solid rgba(16,185,129,.3)">✅ In</span>':''}
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  ${ch.grade?`<span>Grade ${ch.grade}</span>`:''}
+                  ${ch.room?`<span style="background:rgba(6,182,212,.1);color:#67e8f9;padding:1px 7px;border-radius:100px;border:1px solid rgba(6,182,212,.2);font-weight:700">${ch.room}</span>`:''}
+                  ${hasAllergy?`<span style="background:rgba(249,115,22,.12);color:#fdba74;padding:1px 7px;border-radius:100px;border:1px solid rgba(249,115,22,.25);font-weight:700">⚠️ ${ch.allergies}</span>`:''}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+                <button onclick="CM.editChild('${ch.id}','${f.id}')" style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✏️</button>
+                <button onclick="CM.deleteChildBtn('${ch.id}','${ch.name.replace(/'/,"\\'")}')" style="width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">🗑️</button>
+              </div>
+            </div>`;
+          }).join('')}
+
+          <!-- Family action bar -->
+          <div style="display:flex;gap:8px;padding:10px 14px;background:rgba(6,14,16,0.5)">
+            <button onclick="CM.checkInAll('${f.id}')" style="flex:1;padding:9px;border-radius:10px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;font-family:var(--body);font-size:12px;font-weight:800;cursor:pointer">✅ Check In All</button>
+            <button onclick="CM.openPrint('${f.id}')" style="flex:1;padding:9px;border-radius:10px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:#67e8f9;font-family:var(--body);font-size:12px;font-weight:800;cursor:pointer">🏷️ Name Tags</button>
+            <button onclick="CM.addChildToFamily('${f.id}')" style="padding:9px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer">+ Child</button>
+            <button onclick="CM.editFamily('${f.id}')" style="padding:9px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer">✏️</button>
+            <button onclick="CM.deleteFamilyBtn('${f.id}','${f.parentName.replace(/'/,"\\'")}')" style="padding:9px 11px;border-radius:10px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#fca5a5;font-family:var(--body);font-size:12px;cursor:pointer">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  /* ── TOGGLE FAMILY EXPAND ── */
+  toggleFamily(id) {
+    const el    = document.getElementById(`cmChildren_${id}`);
+    const arrow = document.getElementById(`cmArrow_${id}`);
+    if (!el) return;
+    const open = el.style.display === 'none';
+    el.style.display   = open ? 'block' : 'none';
+    if (arrow) arrow.textContent = open ? '⌄' : '›';
+  },
+
+  /* ── CHECK IN SINGLE CHILD ── */
+  async checkInChild(childId, familyId, name) {
+    if (this._checkedFamilies.has(childId)) {
+      toast(`🔄 ${name} already checked in`, 'ok');
+      return;
+    }
+    this._checkedFamilies.add(childId);
+    const family = this._families.find(f => f.id === familyId);
+    const child  = family?.children.find(c => c.id === childId);
+    try {
+      await API.checkIn(
+        { id:childId, firstName:child?.firstName, lastName:child?.lastName,
+          fullName:name, grade:child?.grade, type:'child',
+          familyId, parentName:family?.parentName },
+        { leader:_kLeader, event:_kEvent||"Children's Ministry" }
+      );
+      // Update checked count
+      const el = document.getElementById('cmStatChecked');
+      if (el) el.textContent = this._checkedFamilies.size;
+      this.render(this._filtered);
+      toast(`✅ ${name} checked in!`, 'ok');
+    } catch(e) {
+      this._checkedFamilies.delete(childId);
+      toast('⚠️ Check-in failed', 'err');
+    }
+  },
+
+  /* ── CHECK IN ALL CHILDREN IN FAMILY ── */
+  async checkInAll(familyId) {
+    const family = this._families.find(f => f.id === familyId);
+    if (!family || !family.children.length) {
+      toast('⚠️ No children in this family', 'err');
+      return;
+    }
+    showSaving('Checking in family…');
+    try {
+      await API.checkInFamily(familyId, { leader:_kLeader, event:_kEvent||"Children's Ministry" });
+      family.children.forEach(c => this._checkedFamilies.add(c.id));
+      const el = document.getElementById('cmStatChecked');
+      if (el) el.textContent = this._checkedFamilies.size;
+      this.render(this._filtered);
+      toast(`✅ ${family.parentName} family checked in!`, 'ok');
+    } catch(e) {
+      toast('⚠️ Check-in failed', 'err');
+    }
+    hideSaving();
+  },
+
+  /* ── ADD FAMILY ── */
+  openAddFamily() {
+    document.getElementById('cmf_id').value = '';
+    document.getElementById('cmf_name').value = '';
+    document.getElementById('cmf_phone').value = '';
+    document.getElementById('cmf_email').value = '';
+    document.getElementById('cmf_address').value = '';
+    document.getElementById('cmf_notes').value = '';
+    document.getElementById('cmFamilyModalTitle').textContent = '👨‍👩‍👧 Register Family';
+    openModal('cmFamilyModal');
+  },
+
+  editFamily(familyId) {
+    const f = this._families.find(f => f.id === familyId);
+    if (!f) return;
+    document.getElementById('cmf_id').value      = f.id;
+    document.getElementById('cmf_name').value    = f.parentName;
+    document.getElementById('cmf_phone').value   = f.phone;
+    document.getElementById('cmf_email').value   = f.email;
+    document.getElementById('cmf_address').value = f.address;
+    document.getElementById('cmf_notes').value   = f.notes;
+    document.getElementById('cmFamilyModalTitle').textContent = '✏️ Edit Family';
+    openModal('cmFamilyModal');
+  },
+
+  async saveFamily() {
+    const id   = document.getElementById('cmf_id').value;
+    const name = document.getElementById('cmf_name').value.trim();
+    const phone= document.getElementById('cmf_phone').value.trim();
+    if (!name)  { toast('⚠️ Parent name is required', 'err'); return; }
+    if (!phone) { toast('⚠️ Phone number is required', 'err'); return; }
+    const data = { parentName:name, phone, email:document.getElementById('cmf_email').value.trim(),
+      address:document.getElementById('cmf_address').value.trim(), notes:document.getElementById('cmf_notes').value.trim() };
+    showSaving(id ? 'Updating family…' : 'Registering family…');
+    try {
+      let r;
+      if (id) {
+        r = await API.editFamily(id, data);
+        if (r?.success) {
+          const f = this._families.find(f => f.id === id);
+          if (f) Object.assign(f, data);
+        }
+      } else {
+        r = await API.addFamily(data);
+        if (r?.success) {
+          const newFam = { ...data, id:r.id, children:[] };
+          this._families.unshift(newFam);
+          this._filtered = [...this._families];
+        }
+      }
+      if (r?.success) {
+        closeModal('cmFamilyModal');
+        this.updateStats();
+        this.render(this._filtered);
+        toast(id ? '✅ Family updated' : '✅ Family registered!', 'ok');
+      } else toast('⚠️ '+(r?.error||'Failed'), 'err');
+    } catch(e) { toast('⚠️ Connection error', 'err'); }
+    hideSaving();
+  },
+
+  async deleteFamilyBtn(id, name) {
+    if (!confirm(`Delete ${name}'s family and all their children? This cannot be undone.`)) return;
+    showSaving('Deleting…');
+    try {
+      await API.deleteFamily(id);
+      this._families = this._families.filter(f => f.id !== id);
+      this._filtered = this._filtered.filter(f => f.id !== id);
+      this.updateStats();
+      this.render(this._filtered);
+      toast('🗑️ Family deleted', 'ok');
+    } catch(e) { toast('⚠️ Delete failed', 'err'); }
+    hideSaving();
+  },
+
+  /* ── ADD / EDIT CHILD ── */
+  addChildToFamily(familyId) {
+    const family = this._families.find(f => f.id === familyId);
+    document.getElementById('cmc_id').value       = '';
+    document.getElementById('cmc_familyId').value = familyId;
+    document.getElementById('cmc_familyBadge').textContent = `Family: ${family?.parentName || ''}`;
+    ['cmc_first','cmc_last','cmc_grade','cmc_dob','cmc_room','cmc_allergy','cmc_notes'].forEach(id=>{ document.getElementById(id).value=''; });
+    document.getElementById('cmChildModalTitle').textContent = '➕ Add Child';
+    openModal('cmChildModal');
+  },
+
+  editChild(childId, familyId) {
+    const family = this._families.find(f => f.id === familyId);
+    const child  = family?.children.find(c => c.id === childId);
+    if (!child) return;
+    document.getElementById('cmc_id').value       = childId;
+    document.getElementById('cmc_familyId').value = familyId;
+    document.getElementById('cmc_familyBadge').textContent = `Family: ${family?.parentName || ''}`;
+    document.getElementById('cmc_first').value   = child.firstName||'';
+    document.getElementById('cmc_last').value    = child.lastName||'';
+    document.getElementById('cmc_grade').value   = child.grade||'';
+    document.getElementById('cmc_dob').value     = child.dob||'';
+    document.getElementById('cmc_room').value    = child.room||'';
+    document.getElementById('cmc_allergy').value = child.allergies||'';
+    document.getElementById('cmc_notes').value   = child.notes||'';
+    document.getElementById('cmChildModalTitle').textContent = '✏️ Edit Child';
+    openModal('cmChildModal');
+  },
+
+  async saveChild() {
+    const id       = document.getElementById('cmc_id').value;
+    const familyId = document.getElementById('cmc_familyId').value;
+    const first    = document.getElementById('cmc_first').value.trim();
+    if (!first) { toast('⚠️ First name is required', 'err'); return; }
+    const data = {
+      familyId,
+      firstName: first,
+      lastName:  document.getElementById('cmc_last').value.trim(),
+      grade:     document.getElementById('cmc_grade').value.trim(),
+      dob:       document.getElementById('cmc_dob').value,
+      room:      document.getElementById('cmc_room').value.trim(),
+      allergies: document.getElementById('cmc_allergy').value.trim() || 'None',
+      notes:     document.getElementById('cmc_notes').value.trim(),
+    };
+    showSaving(id ? 'Updating child…' : 'Adding child…');
+    try {
+      let r;
+      if (id) {
+        r = await API.editChild(id, data);
+        if (r?.success) {
+          const family = this._families.find(f => f.id === familyId);
+          const child  = family?.children.find(c => c.id === id);
+          if (child) {
+            child.firstName = data.firstName; child.lastName = data.lastName;
+            child.name = (data.firstName + ' ' + data.lastName).trim();
+            child.grade = data.grade; child.dob = data.dob;
+            child.room = data.room; child.allergies = data.allergies; child.notes = data.notes;
+          }
+        }
+      } else {
+        r = await API.addChild(data);
+        if (r?.success) {
+          const family = this._families.find(f => f.id === familyId);
+          if (family) family.children.push({
+            id: r.id, familyId,
+            firstName: data.firstName, lastName: data.lastName,
+            name: (data.firstName+' '+data.lastName).trim(),
+            grade: data.grade, dob: data.dob,
+            room: data.room, allergies: data.allergies, notes: data.notes,
+            parentName: family.parentName
+          });
+        }
+      }
+      if (r?.success) {
+        closeModal('cmChildModal');
+        this.updateStats();
+        this.render(this._filtered);
+        // Keep family expanded
+        setTimeout(() => {
+          const el = document.getElementById(`cmChildren_${familyId}`);
+          if (el) el.style.display = 'block';
+        }, 50);
+        toast(id ? '✅ Child updated' : '✅ Child added!', 'ok');
+      } else toast('⚠️ '+(r?.error||'Failed'), 'err');
+    } catch(e) { toast('⚠️ Connection error', 'err'); }
+    hideSaving();
+  },
+
+  async deleteChildBtn(childId, name) {
+    if (!confirm(`Remove ${name}? This cannot be undone.`)) return;
+    showSaving('Removing…');
+    try {
+      await API.deleteChild(childId);
+      this._families.forEach(f => { f.children = f.children.filter(c => c.id !== childId); });
+      this._filtered = [...this._families];
+      this.updateStats();
+      this.render(this._filtered);
+      toast('🗑️ Child removed', 'ok');
+    } catch(e) { toast('⚠️ Delete failed', 'err'); }
+    hideSaving();
+  },
+
+  /* ── NAME TAG PRINTING ── */
+  openPrint(familyId) {
+    const family = this._families.find(f => f.id === familyId);
+    if (!family) return;
+    this._printFamily = family;
+    const preview = document.getElementById('cmTagPreview');
+    preview.innerHTML = '';
+    if (!family.children.length) {
+      preview.innerHTML = '<div class="empty-state"><p class="empty-txt">No children in this family to print tags for</p></div>';
+      openModal('cmPrintModal');
+      return;
+    }
+    const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    family.children.forEach(child => {
+      const hasAllergy = child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim();
+      const tag = document.createElement('div');
+      tag.innerHTML = `
+        <div class="name-tag-preview" style="width:240px;background:#fff;border:3px solid #0d9488;border-radius:16px;padding:16px 18px;text-align:center;font-family:Arial,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.12);position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,#0d9488,#06b6d4)"></div>
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0d9488;margin-bottom:6px;margin-top:4px">CHILDREN'S MINISTRY</div>
+          <div style="font-size:26px;font-weight:900;color:#111;margin-bottom:3px;line-height:1.1">${child.firstName}</div>
+          <div style="font-size:14px;font-weight:700;color:#444;margin-bottom:8px">${child.lastName}</div>
+          ${child.room ? `<div style="display:inline-block;background:#e6fffa;border:1.5px solid #0d9488;border-radius:100px;padding:3px 12px;font-size:11px;font-weight:800;color:#0d9488;margin-bottom:6px">${child.room}</div>` : ''}
+          <div style="font-size:10px;color:#666;margin-bottom:6px">Grade ${child.grade||'—'}</div>
+          <div style="border-top:1.5px dashed #e0e0e0;margin:8px 0;padding-top:8px">
+            <div style="font-size:9px;color:#888;font-weight:600">PARENT / GUARDIAN</div>
+            <div style="font-size:13px;font-weight:700;color:#222">${family.parentName}</div>
+            <div style="font-size:10px;color:#555">${family.phone}</div>
+          </div>
+          ${hasAllergy ? `<div style="background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;color:#dc2626;margin-top:6px">⚠️ ${child.allergies}</div>` : ''}
+          <div style="margin-top:8px;font-size:9px;color:#aaa">${today}</div>
+        </div>`;
+      preview.appendChild(tag.firstElementChild);
+    });
+    openModal('cmPrintModal');
+  },
+
+  printTags() {
+    const family = this._printFamily;
+    if (!family || !family.children.length) return;
+    const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const tagsHTML = family.children.map(child => {
+      const hasAllergy = child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim();
+      return `
+      <div class="tag">
+        <div class="tag-stripe"></div>
+        <div class="tag-label">CHILDREN'S MINISTRY</div>
+        <div class="tag-name">${child.firstName}</div>
+        <div class="tag-last">${child.lastName}</div>
+        ${child.room ? `<div class="tag-room">${child.room}</div>` : ''}
+        <div class="tag-grade">Grade ${child.grade||'—'}</div>
+        <div class="tag-divider"></div>
+        <div class="tag-parent-label">PARENT / GUARDIAN</div>
+        <div class="tag-parent">${family.parentName}</div>
+        <div class="tag-phone">${family.phone}</div>
+        ${hasAllergy ? `<div class="tag-allergy">⚠️ ALLERGY: ${child.allergies}</div>` : ''}
+        <div class="tag-date">${today}</div>
+      </div>`;
+    }).join('');
+
+    const win = window.open('', '_blank', 'width=800,height=600');
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Name Tags — ${family.parentName} Family</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    h2 { font-size: 16px; color: #333; margin-bottom: 16px; text-align: center; }
+    .tags-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+    .tag { width: 250px; background: #fff; border: 3px solid #0d9488; border-radius: 16px; padding: 18px 20px; text-align: center; page-break-inside: avoid; position: relative; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    .tag-stripe { position: absolute; top: 0; left: 0; right: 0; height: 9px; background: linear-gradient(90deg, #0d9488, #06b6d4); }
+    .tag-label { font-size: 9px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: #0d9488; margin: 10px 0 7px; }
+    .tag-name { font-size: 34px; font-weight: 900; color: #111; line-height: 1; margin-bottom: 3px; }
+    .tag-last { font-size: 16px; font-weight: 700; color: #444; margin-bottom: 7px; }
+    .tag-room { display: inline-block; background: #e6fffa; border: 1.5px solid #0d9488; border-radius: 100px; padding: 3px 14px; font-size: 12px; font-weight: 800; color: #0d9488; margin-bottom: 5px; }
+    .tag-grade { font-size: 11px; color: #666; margin-bottom: 5px; font-weight: 600; }
+    .tag-divider { border-top: 1.5px dashed #ddd; margin: 8px 0; padding-top: 8px; }
+    .tag-parent-label { font-size: 8px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #999; margin-bottom: 3px; }
+    .tag-parent { font-size: 14px; font-weight: 700; color: #222; }
+    .tag-phone { font-size: 11px; color: #555; margin-top: 2px; }
+    .tag-allergy { background: #fff5f5; border: 1.5px solid #ef4444; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 800; color: #dc2626; margin-top: 8px; }
+    .tag-date { font-size: 9px; color: #bbb; margin-top: 8px; }
+    @media print {
+      body { padding: 10px; background: white; }
+      h2 { display: none; }
+      .tags-grid { gap: 12px; }
+      .tag { box-shadow: none; border: 2.5px solid #0d9488; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Name Tags — ${family.parentName} Family &nbsp;|&nbsp; ${today}</h2>
+  <div class="tags-grid">${tagsHTML}</div>
+  <script>window.onload = function(){ window.print(); }</script>
+</body>
+</html>`);
+    win.document.close();
+    closeModal('cmPrintModal');
+    toast('🖨️ Print dialog opened', 'ok');
+  }
+};
+
+/* ── SHOW CM BUTTON WHEN CHILDREN'S MINISTRY SELECTED ── */
+const _origConfirmEvent = KIOSK.confirmEvent.bind(KIOSK);
+KIOSK.confirmEvent = function() {
+  _origConfirmEvent();
+  const isCM = _kEvent === "Children's Ministry";
+  const btn = document.getElementById('cmKioskBtn');
+  if (btn) btn.style.display = isCM ? 'flex' : 'none';
+};
