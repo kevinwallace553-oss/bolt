@@ -63,3 +63,15 @@ API.editChild         = (id, data)  => gasRun('editChildAPI', id, data);
 API.deleteFamily      = (id)        => gasRun('deleteFamilyAPI', id);
 API.deleteChild       = (id)        => gasRun('deleteChildAPI', id);
 API.checkInFamily     = (id, meta)  => gasRun('checkInFamilyAPI', id, meta);
+
+// Volunteer Management
+API.getVolunteers        = (dept)       => gasRun('getVolunteersAPI', dept||'all');
+API.addVolunteer         = (data)       => gasRun('addVolunteerAPI', data);
+API.editVolunteer        = (id, data)   => gasRun('editVolunteerAPI', id, data);
+API.deleteVolunteer      = (id)         => gasRun('deleteVolunteerAPI', id);
+API.checkInVolunteer     = (id, meta)   => gasRun('checkInVolunteerAPI', id, meta);
+API.getVolunteerCheckIns = (dept)       => gasRun('getVolunteerCheckInsAPI', dept||'all');
+API.getDepartments       = ()           => gasRun('getDepartmentsAPI');
+API.addDepartment        = (n, i, c)    => gasRun('addDepartmentAPI', n, i, c);
+API.deleteDepartment     = (id)         => gasRun('deleteDepartmentAPI', id);
+API.getVolunteerDashboard= ()           => gasRun('getVolunteerDashboardAPI');

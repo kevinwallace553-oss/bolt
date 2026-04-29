@@ -334,7 +334,8 @@ const KIOSK = {
            .map(c=>String(c.studentId||c.id||''))
            .filter(Boolean)
       );
-      document.getElementById('kStatChecked').textContent = _checkedToday.size;
+      const _sc1=document.getElementById('kStatChecked');if(_sc1)_sc1.textContent=_checkedToday.size;
+      const _sc2=document.getElementById('kStatCheckedSide');if(_sc2)_sc2.textContent=_checkedToday.size;
     } catch(e){ console.error('loadCheckins error',e); }
   },
 
@@ -366,9 +367,62 @@ const KIOSK = {
     document.getElementById('kLeaderName').textContent = _kLeader;
     document.getElementById('kEventName').textContent = eventName;
     document.getElementById('kLeaderBox').classList.add('show');
-    // Check leader in
+
+    // Style the kiosk header based on event type
+    const eventStyles = {
+      'Sunday Service':      { color:'#fcd34d', border:'rgba(245,158,11,0.3)',  bg:'rgba(245,158,11,0.08)',  icon:'🙏' },
+      'Youth Night':         { color:'#67e8f9', border:'rgba(6,182,212,0.3)',   bg:'rgba(6,182,212,0.08)',   icon:'⚡' },
+      'Special Event':       { color:'#c4b5fd', border:'rgba(139,92,246,0.3)', bg:'rgba(139,92,246,0.08)', icon:'🎉' },
+      'Childrens Ministry':  { color:'#6ee7b7', border:'rgba(16,185,129,0.3)', bg:'rgba(16,185,129,0.08)', icon:'🧒' },
+    };
+    const style = eventStyles[eventName] || { color:'var(--muted)', border:'var(--rim)', bg:'transparent', icon:'📅' };
+    const lbox = document.getElementById('kLeaderBox');
+    if (lbox) {
+      lbox.style.borderColor = style.border;
+      lbox.style.background  = style.bg;
+    }
+    const evEl = document.getElementById('kEventName');
+    if (evEl) evEl.style.color = style.color;
+    const kSide = document.querySelector('.k-side');
+    if (kSide) kSide.style.borderRight = `1px solid ${style.border}`;
+
+    // Show & style the event banner in the kiosk main area
+    const bannerConfig = {
+      'Sunday Service':     { bg:'rgba(245,158,11,0.1)',  border:'rgba(245,158,11,0.35)',  color:'#fcd34d', title:'Sunday Service',    desc:'Main weekly gathering — search to check in members',       icon:'🙏' },
+      'Youth Night':        { bg:'rgba(6,182,212,0.1)',   border:'rgba(6,182,212,0.35)',   color:'#67e8f9', title:'Youth Night',        desc:'Wednesday or Friday event — check in youth & leaders',     icon:'⚡' },
+      'Special Event':      { bg:'rgba(139,92,246,0.1)',  border:'rgba(139,92,246,0.35)',  color:'#c4b5fd', title:'Special Event',      desc:'Camp, conference, or retreat check-in',                   icon:'🎉' },
+      'Childrens Ministry': { bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.35)', color:'#6ee7b7', title:"Children's Ministry", desc:'Use the Families button for child check-in & name tags',  icon:'🧒' },
+    };
+    const bc = bannerConfig[eventName] || { bg:'rgba(100,116,139,0.1)', border:'rgba(100,116,139,0.3)', color:'var(--muted)', title:eventName, desc:'Custom event — search to check in attendees', icon:'📅' };
+
+    const banner = document.getElementById('kEventBanner');
+    if (banner) {
+      banner.style.display = 'block';
+      banner.style.background = bc.bg;
+      banner.style.borderColor = bc.border;
+      banner.style.color = bc.color;
+      const icon = document.getElementById('kBannerIcon'); if(icon) icon.textContent = bc.icon;
+      const title = document.getElementById('kBannerTitle'); if(title) title.textContent = bc.title;
+      const desc = document.getElementById('kBannerDesc'); if(desc) desc.textContent = bc.desc;
+    }
+
+    // If Children's Ministry, swap action buttons to focus on families
+    if (eventName === 'Childrens Ministry') {
+      const acts = document.getElementById('kActionsRow');
+      if (acts) acts.innerHTML = `
+        <button class="k-btn teal full" onclick="showCM()" style="background:rgba(16,185,129,0.18);border-color:rgba(16,185,129,0.5);color:#6ee7b7">🧒 Open Family Registry</button>
+        <button class="k-btn" onclick="KIOSK.openNewStudent()">➕ New Student</button>
+        <button class="k-btn" onclick="KIOSK.openManage()">📋 Manage</button>`;
+    } else {
+      const acts = document.getElementById('kActionsRow');
+      if (acts) acts.innerHTML = `
+        <button class="k-btn teal full" onclick="KIOSK.openBatch()">👥 Batch Check-In</button>
+        <button class="k-btn" onclick="KIOSK.openNewStudent()">➕ New Student</button>
+        <button class="k-btn" onclick="KIOSK.openManage()">📋 Manage</button>`;
+    }
+
     API.checkIn({type:'leader',leader:_kLeader}, {leader:_kLeader,event:eventName,type:'leader'}).catch(()=>{});
-    toast(`⚡ Session started — ${eventName}`,'ok');
+    toast(`${style.icon} Session started — ${eventName}`,'ok');
   },
 
   search(q) {
@@ -429,7 +483,8 @@ const KIOSK = {
     if(_checkedToday.has(sid)){this.showAlready(name);return;}
     // Optimistic
     _checkedToday.add(sid);
-    document.getElementById('kStatChecked').textContent = _checkedToday.size;
+    const _sc1=document.getElementById('kStatChecked');if(_sc1)_sc1.textContent=_checkedToday.size;
+      const _sc2=document.getElementById('kStatCheckedSide');if(_sc2)_sc2.textContent=_checkedToday.size;
     this.search(document.getElementById('kSearch').value);
     this.showSuccess(name, student.grade?`Grade ${student.grade}`:'Checked in!', student);
     try {
@@ -440,13 +495,15 @@ const KIOSK = {
       );
       if(!r?.success && r?.status!=='success'){
         _checkedToday.delete(sid);
-        document.getElementById('kStatChecked').textContent = _checkedToday.size;
+        const _sc1=document.getElementById('kStatChecked');if(_sc1)_sc1.textContent=_checkedToday.size;
+      const _sc2=document.getElementById('kStatCheckedSide');if(_sc2)_sc2.textContent=_checkedToday.size;
         toast('⚠️ Check-in failed — try again','err');
         this.search(document.getElementById('kSearch').value);
       }
     } catch(e){
       _checkedToday.delete(sid);
-      document.getElementById('kStatChecked').textContent = _checkedToday.size;
+      const _sc1=document.getElementById('kStatChecked');if(_sc1)_sc1.textContent=_checkedToday.size;
+      const _sc2=document.getElementById('kStatCheckedSide');if(_sc2)_sc2.textContent=_checkedToday.size;
       toast('⚠️ Connection error','err');
       this.search(document.getElementById('kSearch').value);
     }
@@ -747,7 +804,8 @@ const KIOSK = {
       ids.forEach(id=>_checkedToday.add(id));
       _batchSelected.clear();
       closeModal('batchModal');
-      document.getElementById('kStatChecked').textContent = _checkedToday.size;
+      const _sc1=document.getElementById('kStatChecked');if(_sc1)_sc1.textContent=_checkedToday.size;
+      const _sc2=document.getElementById('kStatCheckedSide');if(_sc2)_sc2.textContent=_checkedToday.size;
       this.search(document.getElementById('kSearch').value);
       toast(`✅ ${ids.length} students checked in!`,'ok');
     } catch(e){ toast('⚠️ Batch check-in failed — check connection','err'); }
@@ -1999,3 +2057,290 @@ KIOSK.confirmEvent = function() {
 
 function showCM() { showView('vCM'); CM.load(); }
 KIOSK.selectCM = function(el) { KIOSK.selectEvent(el, "Childrens Ministry", '🧒', "Childrens church check-in"); };
+
+/* ════════════════════════════════════════════════════
+   VOLUNTEER MODULE
+════════════════════════════════════════════════════ */
+const VOL = {
+  _department: '',
+  _volunteers: [],
+  _filtered: [],
+  _checkedIn: new Set(),
+  _departments: [],
+
+  /* ── OPEN ── */
+  async open(department, icon) {
+    this._department = department;
+    this._checkedIn.clear();
+    showView('vVolunteers');
+    // Set header
+    const t = document.getElementById('volDeptTitle');
+    if (t) t.textContent = (icon||'🛡️') + ' ' + (department||'VOLUNTEERS').toUpperCase();
+    const deptStat = document.getElementById('volStatDept');
+    if (deptStat) deptStat.textContent = department ? department.split(' ')[0] : 'All';
+    await this.load();
+  },
+
+  async load() {
+    showSaving('Loading volunteers…');
+    try {
+      const r = await API.getVolunteers(this._department);
+      this._volunteers = r?.volunteers || [];
+      this._filtered = [...this._volunteers];
+      this.updateStats();
+      this.render(this._filtered);
+    } catch(e) { toast('⚠️ Failed to load volunteers','err'); }
+    hideSaving();
+  },
+
+  updateStats() {
+    const el = document.getElementById('volStatTotal');
+    if (el) el.textContent = this._volunteers.length;
+    const el2 = document.getElementById('volStatChecked');
+    if (el2) el2.textContent = this._checkedIn.size;
+  },
+
+  search(q) {
+    document.getElementById('volClear').classList.toggle('show', q.length > 0);
+    if (!q.trim()) { this._filtered = [...this._volunteers]; }
+    else {
+      const ql = q.toLowerCase();
+      this._filtered = this._volunteers.filter(v =>
+        (v.name||'').toLowerCase().includes(ql) ||
+        (v.role||'').toLowerCase().includes(ql) ||
+        (v.department||'').toLowerCase().includes(ql)
+      );
+    }
+    this.render(this._filtered);
+  },
+
+  clearSearch() {
+    document.getElementById('volSearch').value = '';
+    document.getElementById('volClear').classList.remove('show');
+    this._filtered = [...this._volunteers];
+    this.render(this._filtered);
+  },
+
+  render(vols) {
+    const el = document.getElementById('volList');
+    if (!vols.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:60px 20px">
+        <div class="empty-icon">${this._volunteers.length ? '🔍' : '🛡️'}</div>
+        <div class="k-empty-title">${this._volunteers.length ? 'No volunteers match' : 'No volunteers registered'}</div>
+        <div class="k-empty-sub">${this._volunteers.length ? 'Try a different name' : 'Tap <strong>+ Volunteer</strong> to add your first volunteer'}</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = vols.map((v, i) => {
+      const isIn = this._checkedIn.has(v.id);
+      const init = initials(v.name);
+      const deptColor = this._getDeptColor(v.department);
+      return `<div style="background:var(--ink2);border:2px solid ${isIn ? deptColor.border : 'var(--rim)'};border-radius:18px;margin-bottom:10px;overflow:hidden;animation:fadeUp .2s ease both;animation-delay:${Math.min(i,6)*0.04}s;transition:border-color .2s;${isIn ? `background:${deptColor.bg}` : ''}">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer" onclick="VOL.checkIn('${v.id}','${v.name.replace(/'/,"\\'")}')">
+          <div style="width:46px;height:46px;border-radius:50%;background:${isIn ? deptColor.border : gradientForName(v.name)};display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:15px;font-weight:800;color:#fff;flex-shrink:0;transition:background .2s">${init}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--font);font-size:15px;font-weight:800;color:${isIn ? deptColor.text : 'var(--text)'};margin-bottom:3px;display:flex;align-items:center;gap:6px">
+              ${v.name}
+              ${isIn ? '<span style="font-size:9px;font-weight:800;background:rgba(255,255,255,0.15);color:#fff;padding:2px 8px;border-radius:100px;border:1px solid rgba(255,255,255,0.3)">✅ IN</span>' : ''}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+              ${v.role ? `<span style="font-size:10px;font-weight:700;background:${deptColor.bg};color:${deptColor.text};padding:2px 8px;border-radius:100px;border:1px solid ${deptColor.border}">${v.role}</span>` : ''}
+              ${v.department ? `<span style="font-size:10px;font-weight:600;color:var(--muted)">${v.department}</span>` : ''}
+              ${v.phone ? `<span style="font-size:10px;color:var(--muted2)">📞 ${v.phone}</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
+            <button onclick="VOL.editVol('${v.id}')" style="width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--rim);color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✏️</button>
+            <button onclick="VOL.deleteVol('${v.id}','${v.name.replace(/'/,"\\'")}')" style="width:30px;height:30px;border-radius:8px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  _getDeptColor(dept) {
+    const map = {
+      'Worship Team':       { bg:'rgba(236,72,153,0.1)', border:'rgba(236,72,153,0.5)', text:'#f9a8d4' },
+      'Ushers & Greeters':  { bg:'rgba(8,145,178,0.1)',  border:'rgba(8,145,178,0.5)',  text:'#67e8f9' },
+      'Security':           { bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.5)',  text:'#fca5a5' },
+      'Media & Tech':       { bg:'rgba(124,58,237,0.1)', border:'rgba(124,58,237,0.5)', text:'#c4b5fd' },
+      'Parking & Traffic':  { bg:'rgba(217,119,6,0.1)',  border:'rgba(217,119,6,0.5)',  text:'#fcd34d' },
+      'Prayer Team':        { bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.5)', text:'#6ee7b7' },
+      'Hospitality':        { bg:'rgba(120,113,108,0.1)',border:'rgba(120,113,108,0.5)',text:'#d6d3d1' },
+    };
+    return map[dept] || { bg:'rgba(100,116,139,0.1)', border:'rgba(100,116,139,0.4)', text:'var(--muted)' };
+  },
+
+  async checkIn(volId, name) {
+    if (this._checkedIn.has(volId)) { toast(`🔄 ${name} already checked in`,'ok'); return; }
+    this._checkedIn.add(volId);
+    this.updateStats();
+    this.render(this._filtered);
+    try {
+      const r = await API.checkInVolunteer(volId, { event: _kEvent||this._department, leader: _kLeader });
+      if (!r?.success) { this._checkedIn.delete(volId); this.updateStats(); this.render(this._filtered); toast('⚠️ Check-in failed','err'); return; }
+      toast(`✅ ${name} checked in!`,'ok');
+    } catch(e) { this._checkedIn.delete(volId); this.updateStats(); this.render(this._filtered); toast('⚠️ Connection error','err'); }
+  },
+
+  async batchCheckInAll() {
+    const unchecked = this._volunteers.filter(v => !this._checkedIn.has(v.id));
+    if (!unchecked.length) { toast('✅ All volunteers already checked in','ok'); return; }
+    if (!confirm(`Check in all ${unchecked.length} volunteers in this department?`)) return;
+    showSaving(`Checking in ${unchecked.length} volunteers…`);
+    let done = 0;
+    for (const v of unchecked) {
+      try {
+        const r = await API.checkInVolunteer(v.id, { event: _kEvent||this._department, leader: _kLeader });
+        if (r?.success) { this._checkedIn.add(v.id); done++; }
+      } catch(e){}
+    }
+    this.updateStats(); this.render(this._filtered);
+    hideSaving();
+    toast(`✅ ${done} volunteers checked in!`,'ok');
+  },
+
+  /* ── ADD / EDIT ── */
+  openAddVolunteer() {
+    document.getElementById('vol_id').value = '';
+    ['vol_first','vol_last','vol_phone','vol_email','vol_role','vol_notes'].forEach(id => { document.getElementById(id).value=''; });
+    document.getElementById('vol_dept').value = this._department || '';
+    document.getElementById('volModalTitle').textContent = '➕ Add Volunteer';
+    openModal('volModal');
+  },
+
+  editVol(id) {
+    const v = this._volunteers.find(v => v.id === id);
+    if (!v) return;
+    document.getElementById('vol_id').value    = v.id;
+    document.getElementById('vol_first').value = v.firstName||'';
+    document.getElementById('vol_last').value  = v.lastName||'';
+    document.getElementById('vol_phone').value = v.phone||'';
+    document.getElementById('vol_email').value = v.email||'';
+    document.getElementById('vol_dept').value  = v.department||'';
+    document.getElementById('vol_role').value  = v.role||'';
+    document.getElementById('vol_notes').value = v.notes||'';
+    document.getElementById('volModalTitle').textContent = '✏️ Edit Volunteer';
+    openModal('volModal');
+  },
+
+  async save() {
+    const id    = document.getElementById('vol_id').value;
+    const first = document.getElementById('vol_first').value.trim();
+    const dept  = document.getElementById('vol_dept').value;
+    if (!first) { toast('⚠️ First name is required','err'); return; }
+    const data = { firstName:first, lastName:document.getElementById('vol_last').value.trim(),
+      phone:document.getElementById('vol_phone').value.trim(), email:document.getElementById('vol_email').value.trim(),
+      department:dept, role:document.getElementById('vol_role').value.trim(),
+      notes:document.getElementById('vol_notes').value.trim() };
+    showSaving(id ? 'Updating…' : 'Adding volunteer…');
+    try {
+      const r = id ? await API.editVolunteer(id, data) : await API.addVolunteer(data);
+      if (r?.success) {
+        closeModal('volModal');
+        await this.load();
+        toast(id ? '✅ Volunteer updated' : '✅ Volunteer added!','ok');
+      } else toast('⚠️ '+(r?.error||'Failed'),'err');
+    } catch(e) { toast('⚠️ Connection error','err'); }
+    hideSaving();
+  },
+
+  async deleteVol(id, name) {
+    if (!confirm(`Remove ${name}? This cannot be undone.`)) return;
+    showSaving('Removing…');
+    try {
+      await API.deleteVolunteer(id);
+      await this.load();
+      toast('🗑️ Volunteer removed','ok');
+    } catch(e) { toast('⚠️ Delete failed','err'); }
+    hideSaving();
+  },
+
+  /* ── DEPARTMENTS ── */
+  async openDeptManager() {
+    openModal('deptModal');
+    await this.loadDepts();
+  },
+
+  async loadDepts() {
+    try {
+      const r = await API.getDepartments();
+      this._departments = r?.departments || [];
+      const list = document.getElementById('deptList');
+      if (!list) return;
+      list.innerHTML = this._departments.map(d =>
+        `<div style="display:flex;align-items:center;gap:10px;background:var(--ink2);border:1px solid var(--rim);border-radius:12px;padding:10px 14px">
+          <div style="font-size:20px">${d.icon||'🏷️'}</div>
+          <div style="flex:1;font-size:13px;font-weight:600">${d.name}</div>
+          <button onclick="VOL.deleteDept('${d.id}','${d.name.replace(/'/,"\\'")}')" style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#fca5a5;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">🗑️</button>
+        </div>`
+      ).join('') || '<div class="empty-state"><p class="empty-txt">No departments found</p></div>';
+    } catch(e) {}
+  },
+
+  async addDept() {
+    const name = document.getElementById('newDeptInput').value.trim();
+    if (!name) { toast('⚠️ Enter a department name','err'); return; }
+    try {
+      const r = await API.addDepartment(name, '🏷️', '#6b7280');
+      if (r?.success) {
+        document.getElementById('newDeptInput').value = '';
+        await this.loadDepts();
+        // Also add to vol_dept select
+        const sel = document.getElementById('vol_dept');
+        if (sel) {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          sel.appendChild(opt);
+        }
+        toast('✅ Department added','ok');
+      }
+    } catch(e) { toast('⚠️ Failed','err'); }
+  },
+
+  async deleteDept(id, name) {
+    if (!confirm(`Delete "${name}" department?`)) return;
+    try {
+      await API.deleteDepartment(id);
+      await this.loadDepts();
+      toast('🗑️ Department deleted','ok');
+    } catch(e) { toast('⚠️ Failed','err'); }
+  }
+};
+
+/* ── KIOSK: selectVolunteer ── */
+KIOSK.selectVolunteer = function(el, deptName, icon, desc) {
+  if (deptName === '__new_dept__') {
+    // Go back, show dept manager
+    document.getElementById('eventPicker').classList.remove('open');
+    VOL.openDeptManager();
+    return;
+  }
+  KIOSK.selectEvent(el, deptName, icon, desc);
+  // Store as volunteer department session
+  _kEvent = deptName;
+  _kEventType = 'volunteer';
+};
+
+let _kEventType = 'general'; // 'general' | 'volunteer' | 'children'
+
+// Override confirmEvent to route to correct view for volunteer depts
+const _origConfirmVolEvent = KIOSK.confirmEvent.bind(KIOSK);
+KIOSK.confirmEvent = function() {
+  // Check if this is a volunteer department
+  const volunteerDepts = ['Worship Team','Ushers & Greeters','Security','Media & Tech',
+    'Parking & Traffic','Prayer Team','Hospitality'];
+  if (volunteerDepts.includes(_selectedEvent?.name)) {
+    // Confirm the event (sets _kLeader, shows leader box, sends check-in)
+    _origConfirmVolEvent();
+    // Then route to volunteer view
+    setTimeout(() => {
+      VOL.open(_selectedEvent.name, _selectedEvent.icon);
+    }, 300);
+  } else {
+    _origConfirmVolEvent();
+  }
+};
+
+// Add Volunteers option to home card and update API
