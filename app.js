@@ -1705,26 +1705,62 @@ const CM = {
       return;
     }
     const today = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const time  = new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    const secCode = (Math.random().toString(36).substring(2,6)).toUpperCase();
+
     family.children.forEach(child => {
       const hasAllergy = child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim();
-      const tag = document.createElement('div');
-      tag.innerHTML = `
-        <div class="name-tag-preview" style="width:240px;background:#fff;border:3px solid #0d9488;border-radius:16px;padding:16px 18px;text-align:center;font-family:Arial,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.12);position:relative;overflow:hidden">
-          <div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,#0d9488,#06b6d4)"></div>
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0d9488;margin-bottom:6px;margin-top:4px">CHILDREN'S MINISTRY</div>
-          <div style="font-size:26px;font-weight:900;color:#111;margin-bottom:3px;line-height:1.1">${child.firstName}</div>
-          <div style="font-size:14px;font-weight:700;color:#444;margin-bottom:8px">${child.lastName}</div>
-          ${child.room ? `<div style="display:inline-block;background:#e6fffa;border:1.5px solid #0d9488;border-radius:100px;padding:3px 12px;font-size:11px;font-weight:800;color:#0d9488;margin-bottom:6px">${child.room}</div>` : ''}
-          <div style="font-size:10px;color:#666;margin-bottom:6px">Grade ${child.grade||'—'}</div>
-          <div style="border-top:1.5px dashed #e0e0e0;margin:8px 0;padding-top:8px">
-            <div style="font-size:9px;color:#888;font-weight:600">PARENT / GUARDIAN</div>
-            <div style="font-size:13px;font-weight:700;color:#222">${family.parentName}</div>
-            <div style="font-size:10px;color:#555">${family.phone}</div>
+      const grade = child.grade ? 'Grade ' + child.grade : '';
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+
+      // ── CHILD TAG preview ──────────────────────────────
+      wrap.innerHTML = `
+        <div style="width:240px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.13);font-family:Arial,sans-serif">
+          <div style="height:9px;background:linear-gradient(90deg,#10b981,#06b6d4)"></div>
+          <div style="padding:14px 16px 10px;text-align:center">
+            <div style="font-size:8px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#10b981;margin-bottom:8px">CHILDREN'S MINISTRY</div>
+            <div style="font-size:36px;font-weight:900;color:#111;line-height:1;margin-bottom:1px">${child.firstName}</div>
+            <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:8px">${child.lastName}</div>
+            <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:6px">
+              ${child.room ? `<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:100px;background:#ecfdf5;border:1.5px solid #10b981;color:#059669">${child.room}</span>` : ''}
+              ${grade ? `<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:100px;background:#eff6ff;border:1.5px solid #3b82f6;color:#1d4ed8">${grade}</span>` : ''}
+            </div>
+            ${hasAllergy ? `<div style="background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;color:#dc2626;display:inline-block">⚠️ ${child.allergies}</div>` : ''}
           </div>
-          ${hasAllergy ? `<div style="background:#fff5f5;border:1.5px solid #ef4444;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;color:#dc2626;margin-top:6px">⚠️ ${child.allergies}</div>` : ''}
-          <div style="margin-top:8px;font-size:9px;color:#aaa">${today}</div>
+          <div style="height:1px;background:repeating-linear-gradient(90deg,#ddd 0,#ddd 6px,transparent 6px,transparent 12px);margin:0 14px"></div>
+          <div style="padding:10px 16px 14px;text-align:center;background:#f9fafb">
+            <div style="font-size:7px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">SCAN TO PAGE PARENT</div>
+            <div style="width:72px;height:72px;background:linear-gradient(135deg,#064e3b,#0d9488);border-radius:10px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;letter-spacing:1px">QR CODE</div>
+            <div style="font-size:7px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">PICKUP CODE</div>
+            <div style="font-size:26px;font-weight:900;color:#10b981;letter-spacing:5px;line-height:1;margin-bottom:4px">${secCode}</div>
+            <div style="font-size:9px;color:#bbb">${today} &bull; ${time}</div>
+          </div>
+        </div>
+
+        <div style="width:240px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1);border:2px dashed #10b981;font-family:Arial,sans-serif">
+          <div style="height:6px;background:linear-gradient(90deg,#10b981,#06b6d4)"></div>
+          <div style="padding:12px 14px">
+            <div style="font-size:7px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;margin-bottom:9px">SECURITY PICKUP STUB</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:900;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${child.firstName} ${child.lastName}</div>
+                <div style="font-size:10px;color:#666;margin-top:2px">${[child.room,grade].filter(Boolean).join(' · ')}</div>
+              </div>
+              <div style="background:#064e3b;border-radius:10px;padding:7px 11px;text-align:center;flex-shrink:0">
+                <div style="font-size:7px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:2px">CODE</div>
+                <div style="font-size:18px;font-weight:900;color:#6ee7b7;letter-spacing:4px;line-height:1">${secCode}</div>
+              </div>
+            </div>
+            <div style="background:#f0fdf4;border-radius:8px;padding:7px 10px;margin-bottom:7px">
+              <div style="font-size:12px;font-weight:700;color:#065f46">👤 ${family.parentName}</div>
+              <div style="font-size:11px;color:#047857;margin-top:2px">📞 ${family.phone}</div>
+            </div>
+            <div style="font-size:9px;color:#bbb;text-align:center">${today} &bull; ${time}</div>
+          </div>
         </div>`;
-      preview.appendChild(tag.firstElementChild);
+
+      preview.appendChild(wrap);
     });
     openModal('cmPrintModal');
   },
