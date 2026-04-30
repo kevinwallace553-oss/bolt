@@ -367,6 +367,8 @@ const KIOSK = {
     document.getElementById('kLeaderName').textContent = _kLeader;
     document.getElementById('kEventName').textContent = eventName;
     document.getElementById('kLeaderBox').classList.add('show');
+    // Update sidebar labels to match event context
+    KIOSK.updateSidebarLabels(eventName);
 
     // Style the kiosk header based on event type
     const eventStyles = {
@@ -469,6 +471,34 @@ const KIOSK = {
 
     API.checkIn({type:'leader',leader:_kLeader}, {leader:_kLeader,event:eventName,type:'leader'}).catch(()=>{});
     toast(`${style.icon} Session started — ${eventName}`,'ok');
+  },
+
+  updateSidebarLabels(eventName) {
+    const labelMap = {
+      'Sunday Service':       { total:'Attendees', checked:'Checked In', newBtn:'New Member',    regTitle:'Register Member / Guest',   saveBtn:'Register & Save' },
+      'Youth Night':          { total:'Students',  checked:'Checked In', newBtn:'New Student',   regTitle:'Register Student',          saveBtn:'Register & Save' },
+      'Young Adult Ministry': { total:'Attendees', checked:'Checked In', newBtn:'New Attendee',  regTitle:'Register Young Adult',      saveBtn:'Register & Save' },
+      'Small Groups':         { total:'Members',   checked:'Checked In', newBtn:'New Member',    regTitle:'Register Member',           saveBtn:'Register & Save' },
+      'Special Event':        { total:'Attendees', checked:'Checked In', newBtn:'New Attendee',  regTitle:'Register Attendee',         saveBtn:'Register & Save' },
+    };
+    const lbl = labelMap[eventName] || { total:'Attendees', checked:'Checked In', newBtn:'New Attendee', regTitle:'Register Attendee', saveBtn:'Register & Save' };
+
+    // Update sidebar stat labels
+    const el1 = document.getElementById('kLblChecked'); if(el1) el1.textContent = lbl.checked;
+    const el2 = document.getElementById('kLblTotal');   if(el2) el2.textContent = lbl.total;
+
+    // Update action buttons text dynamically
+    const acts = document.getElementById('kActionsRow');
+    if(acts) {
+      acts.querySelectorAll('button').forEach(btn => {
+        if(btn.textContent.includes('New Student') || btn.textContent.includes('New Member') || btn.textContent.includes('New Attendee')) {
+          btn.innerHTML = btn.innerHTML.replace(/New (Student|Member|Attendee)/, lbl.newBtn);
+        }
+      });
+    }
+
+    // Store for modal title use
+    window._kRegLabel = lbl;
   },
 
   search(q) {
@@ -631,6 +661,9 @@ const KIOSK = {
     if (title) { title.textContent = '🌟 First Timer / Guest Registration'; title.style.color = '#fcd34d'; }
     const saveBtn = document.getElementById('nsModalSave');
     if (saveBtn) saveBtn.textContent = 'Register & Check In';
+    // Always adult fields for first-timer flow
+    document.getElementById('ns_grade').placeholder = 'City or full address';
+    document.getElementById('ns_parent').placeholder = 'Spouse / family member (optional)';
     openModal('newStudentModal');
   },
 
@@ -640,10 +673,27 @@ const KIOSK = {
     });
     document.getElementById('ns_checkin').checked = true;
     // Reset title in case first-timer flow changed it
+    const regLbl = window._kRegLabel || {};
     const title = document.getElementById('nsModalTitle');
-    if (title) { title.textContent = '➕ New Student'; title.style.color = ''; }
+    if (title) { title.textContent = '➕ ' + (regLbl.regTitle || 'Register Attendee'); title.style.color = ''; }
     const saveBtn = document.getElementById('nsModalSave');
-    if (saveBtn) saveBtn.textContent = 'Save & Add';
+    if (saveBtn) saveBtn.textContent = regLbl.saveBtn || 'Register & Save';
+    // Adapt form fields for youth vs adults
+    const gradeLabel  = document.getElementById('nsGradeLabel');
+    const parentLabel = document.getElementById('nsParentLabel');
+    if(_kEvent === 'Youth Night') {
+      if(gradeLabel)  gradeLabel.textContent  = 'Grade';
+      if(parentLabel) parentLabel.textContent = 'Parent / Guardian *';
+      document.getElementById('ns_grade').placeholder  = 'e.g. 6, 7, 8, 9, 10…';
+      document.getElementById('ns_parent').placeholder = 'Parent / Guardian name';
+      document.getElementById('ns_allergy').placeholder = 'Allergies or medical notes';
+    } else {
+      if(gradeLabel)  gradeLabel.textContent  = 'Address';
+      if(parentLabel) parentLabel.textContent = 'Spouse / Family Member';
+      document.getElementById('ns_grade').placeholder  = 'City or full address';
+      document.getElementById('ns_parent').placeholder = 'If applicable';
+      document.getElementById('ns_allergy').placeholder = 'Prayer request or notes';
+    }
     openModal('newStudentModal');
   },
 
@@ -889,13 +939,14 @@ function showDash() { showView('vDash'); }
 ════════════════════════════════════════════════════ */
 const DASH = {
   async init() {
-    await this.refresh();
+    await this.refresh(false);
     clearInterval(_dashTimer);
-    _dashTimer = setInterval(()=>this.refresh(), 30000);
+    // Silent background refresh every 30s — no overlay, no interruption
+    _dashTimer = setInterval(()=>this.refresh(true), 30000);
   },
 
-  async refresh() {
-    showSaving('Refreshing…');
+  async refresh(silent=false) {
+    if(!silent) showSaving('Loading…');
     try {
       const [dash, week, atRisk] = await Promise.all([
         API.getDashboard(),
@@ -907,8 +958,8 @@ const DASH = {
       this.renderBirthdays(dash?.birthdays || []);
       this.renderWeek(week);
       this.renderAtRisk(atRisk);
-    } catch(e){ toast('⚠️ Refresh failed','err'); console.error(e); }
-    hideSaving();
+    } catch(e){ if(!silent) toast('⚠️ Refresh failed','err'); console.error(e); }
+    if(!silent) hideSaving();
   },
 
   renderStats(data) {
