@@ -305,6 +305,19 @@
     </div>
   </div>
 
+  <!-- Ministry Event Switcher -->
+  <div style="display:flex;gap:8px;padding:10px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0;background:var(--ink1);border-bottom:1px solid var(--rim)">
+    <button class="dash-evt-btn active" onclick="DASH.switchMinistry('all',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">📊 All Events</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('sunday',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.06);color:#fcd34d;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">🙏 Sunday Service</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('youth',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(6,182,212,0.2);background:rgba(6,182,212,0.06);color:#67e8f9;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">⚡ Youth Night</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('youngadult',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(139,92,246,0.2);background:rgba(139,92,246,0.06);color:#c4b5fd;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">🔥 Young Adults</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('smallgroups',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(16,185,129,0.2);background:rgba(16,185,129,0.06);color:#6ee7b7;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">👥 Small Groups</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('children',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(16,185,129,0.2);background:rgba(16,185,129,0.06);color:#6ee7b7;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">🧒 Children</button>
+    <button class="dash-evt-btn" onclick="DASH.switchMinistry('volunteers',this)" style="display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:100px;border:1.5px solid rgba(236,72,153,0.2);background:rgba(236,72,153,0.06);color:#f9a8d4;font-family:var(--body);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">🛡️ Volunteers</button>
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:flex;align-items:center;padding:0 6px;flex-shrink:0">Date:</div>
+    <input type="date" id="dashDateFilter" onchange="DASH.filterByDate(this.value)" style="background:var(--ink2);border:1px solid var(--rim);border-radius:8px;color:var(--text);font-family:var(--body);font-size:11px;padding:5px 10px;cursor:pointer;flex-shrink:0">
+  </div>
+
   <!-- Dash Nav Tabs -->
   <div class="dash-nav">
     <button class="dash-nav-btn active" onclick="DASH.navTab('overview',this)">Overview</button>
@@ -312,16 +325,18 @@
     <button class="dash-nav-btn" onclick="DASH.navTab('atrisk',this)">At-Risk</button>
     <button class="dash-nav-btn" onclick="DASH.navTab('lookup',this)">Lookup</button>
     <button class="dash-nav-btn" onclick="DASH.navTab('report',this)">Report</button>
+    <button class="dash-nav-btn" onclick="DASH.navTab('volunteers',this)">Volunteers</button>
   </div>
 
   <!-- OVERVIEW TAB -->
   <div class="dash-tab active" id="dtOverview">
     <div class="dash-body">
       <div class="stat-strip">
-        <div class="stat-card" style="--sc:linear-gradient(90deg,#0d9488,transparent 60%)"><div class="stat-lbl">Today</div><div class="stat-val" id="dStatToday">—</div><div class="stat-sub" id="dStatTodaySub">Check-ins</div><div class="stat-icon-bg">✅</div></div>
-        <div class="stat-card" style="--sc:linear-gradient(90deg,#06b6d4,transparent 60%)"><div class="stat-lbl">Students</div><div class="stat-val" id="dStatTotal">—</div><div class="stat-sub">Registered</div><div class="stat-icon-bg">👥</div></div>
-        <div class="stat-card" style="--sc:linear-gradient(90deg,#8b5cf6,transparent 60%)"><div class="stat-lbl">Leaders</div><div class="stat-val" id="dStatLeaders">—</div><div class="stat-sub">Active today</div><div class="stat-icon-bg">⭐</div></div>
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#0d9488,transparent 60%)"><div class="stat-lbl" id="dLblToday">Today</div><div class="stat-val" id="dStatToday">—</div><div class="stat-sub" id="dStatTodaySub">Check-ins</div><div class="stat-icon-bg">✅</div></div>
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#06b6d4,transparent 60%)"><div class="stat-lbl" id="dLblTotal">Attendees</div><div class="stat-val" id="dStatTotal">—</div><div class="stat-sub" id="dSubTotal">Registered</div><div class="stat-icon-bg">👥</div></div>
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#8b5cf6,transparent 60%)"><div class="stat-lbl" id="dLblLeaders">Leaders</div><div class="stat-val" id="dStatLeaders">—</div><div class="stat-sub" id="dSubLeaders">Active today</div><div class="stat-icon-bg">⭐</div></div>
         <div class="stat-card" style="--sc:linear-gradient(90deg,#f59e0b,transparent 60%)"><div class="stat-lbl">New Today</div><div class="stat-val" id="dStatNew">—</div><div class="stat-sub">First timers</div><div class="stat-icon-bg">🌟</div></div>
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#10b981,transparent 60%)"><div class="stat-lbl" id="dLblGroups">Volunteers</div><div class="stat-val" id="dStatGroups">—</div><div class="stat-sub" id="dSubGroups">Checked in</div><div class="stat-icon-bg">🛡️</div></div>
         <div class="stat-card" style="--sc:linear-gradient(90deg,#ef4444,transparent 60%);cursor:pointer" onclick="DASH.navTab('atrisk',document.querySelectorAll('.dash-nav-btn')[2])"><div class="stat-lbl">At-Risk</div><div class="stat-val" id="dStatRisk">—</div><div class="stat-sub">Low attendance</div><div class="stat-icon-bg">⚠️</div></div>
       </div>
       <div class="bday-strip">
@@ -406,6 +421,24 @@
             <div class="panel-body" id="lookupHistoryList"><div class="empty-state"><p class="empty-txt">Loading…</p></div></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOLUNTEERS TAB -->
+  <div class="dash-tab" id="dtVolunteers">
+    <div class="dash-body">
+      <div class="stat-strip" id="volDashStrip">
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#ec4899,transparent 60%)"><div class="stat-lbl">Total</div><div class="stat-val" id="vdStatTotal">—</div><div class="stat-sub">Volunteers</div><div class="stat-icon-bg">🛡️</div></div>
+        <div class="stat-card" style="--sc:linear-gradient(90deg,#10b981,transparent 60%)"><div class="stat-lbl">Today</div><div class="stat-val" id="vdStatToday">—</div><div class="stat-sub">Checked In</div><div class="stat-icon-bg">✅</div></div>
+      </div>
+      <div class="panel" style="min-height:200px">
+        <div class="panel-head"><div class="panel-title">🛡️ By Department</div></div>
+        <div class="panel-body" id="volDeptPanel"><div class="empty-state"><p class="empty-txt">Loading…</p></div></div>
+      </div>
+      <div class="panel" style="min-height:200px">
+        <div class="panel-head"><div class="panel-title">🕒 Recent Check-ins</div><div class="panel-count" id="volRecentCount">—</div></div>
+        <div class="panel-body" id="volRecentPanel"><div class="empty-state"><p class="empty-txt">Loading…</p></div></div>
       </div>
     </div>
   </div>

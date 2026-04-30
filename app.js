@@ -945,6 +945,11 @@ const DASH = {
     _dashTimer = setInterval(()=>this.refresh(true), 30000);
   },
 
+  _ministry: 'all',    // current ministry filter
+  _dateFilter: '',     // current date filter (YYYY-MM-DD)
+  _rawDash: null,      // last full dashboard data
+  _rawCheckins: [],    // all check-ins unfiltered
+
   async refresh(silent=false) {
     if(!silent) showSaving('Loading…');
     try {
@@ -953,23 +958,163 @@ const DASH = {
         API.getWeeklyReport(0),
         API.getAtRisk()
       ]);
-      this.renderStats(dash);
-      this.renderFeed(dash?.checkins || _checkinsToday || []);
+      this._rawDash = dash;
+      this._rawCheckins = dash?.checkins || [];
+      this.applyFilters();
       this.renderBirthdays(dash?.birthdays || []);
       this.renderWeek(week);
       this.renderAtRisk(atRisk);
+      this.loadVolunteerDash();
     } catch(e){ if(!silent) toast('⚠️ Refresh failed','err'); console.error(e); }
     if(!silent) hideSaving();
   },
 
-  renderStats(data) {
+  /* ── Ministry switcher ── */
+  switchMinistry(key, btn) {
+    this._ministry = key;
+    // Update active button styling
+    document.querySelectorAll('.dash-evt-btn').forEach(b => {
+      b.style.opacity = '0.5';
+      b.style.borderWidth = '1.5px';
+    });
+    if(btn) { btn.style.opacity = '1'; btn.style.borderWidth = '2px'; }
+    this.applyFilters();
+    this.updateStatLabels(key);
+  },
+
+  filterByDate(val) {
+    this._dateFilter = val;
+    this.applyFilters();
+  },
+
+  applyFilters() {
+    const checkins = this._rawCheckins || [];
+    const ministry = this._ministry;
+    const dateFilter = this._dateFilter;
+
+    const ministryMap = {
+      sunday:     ['Sunday Service','sunday service'],
+      youth:      ['Youth Night','youth night','youth'],
+      youngadult: ['Young Adult Ministry','young adult','Young Adult'],
+      smallgroups:['Small Groups','small groups'],
+      children:   ["Children's Ministry","childrens ministry","children"],
+      volunteers: ['Worship Team','Ushers & Greeters','Security','Media & Tech','Parking & Traffic','Prayer Team','Hospitality'],
+      all:        null
+    };
+
+    let filtered = checkins;
+
+    // Ministry filter
+    if(ministry !== 'all' && ministryMap[ministry]) {
+      const keys = ministryMap[ministry].map(k=>k.toLowerCase());
+      filtered = filtered.filter(ci => {
+        const ev = (ci.event||ci.type||'').toLowerCase();
+        return keys.some(k => ev.includes(k));
+      });
+    }
+
+    // Date filter
+    if(dateFilter) {
+      filtered = filtered.filter(ci => {
+        const d = ci.time || ci.date || ci.checkinTime || '';
+        return d.startsWith(dateFilter);
+      });
+    }
+
+    // Re-render with filtered data
+    this.renderFeed(filtered);
+
+    // Build filtered stats
+    const dash = this._rawDash || {};
+    const todayCount = filtered.length;
+    const newCount   = filtered.filter(ci=>(ci.type||'').toLowerCase()==='new').length;
+
+    const el1 = document.getElementById('dStatToday');
+    const el2 = document.getElementById('dStatNew');
+    if(el1) el1.textContent = todayCount || '0';
+    if(el2) el2.textContent = newCount   || '0';
+
+    // Keep total/leaders from raw data (they don't change by filter)
+    this.renderStats(dash, true);
+  },
+
+  updateStatLabels(ministry) {
+    const map = {
+      all:        { total:'Attendees', leaders:'Leaders',  lbl:'Today',    groups:'Volunteers' },
+      sunday:     { total:'Members',   leaders:'Leaders',  lbl:'Sunday',   groups:'Departments' },
+      youth:      { total:'Students',  leaders:'Leaders',  lbl:'Youth',    groups:'Groups' },
+      youngadult: { total:'Members',   leaders:'Leaders',  lbl:'YA Today', groups:'Groups' },
+      smallgroups:{ total:'Members',   leaders:'Leaders',  lbl:'Checked',  groups:'Groups' },
+      children:   { total:'Children',  leaders:'Families', lbl:'Checked',  groups:'Families' },
+      volunteers: { total:'Volunteers',leaders:'Depts',    lbl:'On Duty',  groups:'Depts' },
+    };
+    const l = map[ministry] || map.all;
+    const set = (id, v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('dLblTotal',   l.total);
+    set('dLblLeaders', l.leaders);
+    set('dLblToday',   l.lbl);
+    set('dLblGroups',  l.groups);
+  },
+
+  renderStats(data, skipTodayNew=false) {
     const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v??'—'; };
-    set('dStatToday', data?.totalToday ?? data?.checkedIn ?? '—');
+    if(!skipTodayNew) {
+      set('dStatToday', data?.totalToday ?? data?.checkedIn ?? '—');
+      set('dStatNew',   data?.newToday ?? '—');
+    }
     set('dStatTodaySub', data?.event || 'Check-ins today');
     set('dStatTotal', data?.totalStudents ?? '—');
     set('dStatLeaders', data?.totalLeaders ?? data?.leadersToday ?? '—');
-    set('dStatNew', data?.newToday ?? '—');
     set('dStatRisk', data?.atRisk ?? '—');
+    const vEl = document.getElementById('dStatGroups');
+    if(vEl) vEl.textContent = data?.totalVolunteers ?? '—';
+  },
+
+  async loadVolunteerDash() {
+    try {
+      const r = await API.getVolunteerDashboard();
+      if(!r) return;
+      const el1 = document.getElementById('vdStatTotal'); if(el1) el1.textContent = r.totalVolunteers||'0';
+      const el2 = document.getElementById('vdStatToday'); if(el2) el2.textContent = r.checkedInToday||'0';
+      const deptEl = document.getElementById('volDeptPanel');
+      if(deptEl && r.departments?.length) {
+        const deptColors = {
+          'Worship Team':'#ec4899','Ushers & Greeters':'#0891b2','Security':'#dc2626',
+          'Media & Tech':'#7c3aed','Parking & Traffic':'#d97706','Prayer Team':'#10b981','Hospitality':'#78716c'
+        };
+        deptEl.innerHTML = r.departments.map(d => {
+          const pct = d.total > 0 ? Math.round((d.checkedIn/d.total)*100) : 0;
+          const col = deptColors[d.name] || '#6b7280';
+          return `<div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border-radius:12px;border:1px solid var(--rim)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${d.name}</div>
+              <div style="font-size:12px;font-weight:700;color:${col}">${d.checkedIn}/${d.total}</div>
+            </div>
+            <div style="height:6px;background:var(--rim);border-radius:100px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${col};border-radius:100px;transition:width .5s ease"></div>
+            </div>
+          </div>`;
+        }).join('');
+      } else if(deptEl) {
+        deptEl.innerHTML = '<div class="empty-state"><p class="empty-txt">No volunteers checked in yet</p></div>';
+      }
+      const recEl = document.getElementById('volRecentPanel');
+      if(recEl && r.recentCheckins?.length) {
+        const el3 = document.getElementById('volRecentCount'); if(el3) el3.textContent = r.checkedInToday||'0';
+        recEl.innerHTML = r.recentCheckins.map(ci =>
+          `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--rim)">
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#8b5cf6);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${(ci.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${ci.name||'—'}</div>
+              <div style="font-size:11px;color:var(--muted)">${ci.department||''}</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted2)">${ci.time ? new Date(ci.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+          </div>`
+        ).join('');
+      } else if(recEl) {
+        recEl.innerHTML = '<div class="empty-state"><p class="empty-txt">No check-ins yet today</p></div>';
+      }
+    } catch(e) { console.error('Volunteer dash error',e); }
   },
 
   renderFeed(checkins) {
@@ -1112,10 +1257,11 @@ DASH.navTab = function(tab, btn) {
   if (panel) panel.classList.add('active');
 
   // Load data for the tab being opened
-  if (tab === 'analytics') DASH.loadAnalytics();
-  if (tab === 'atrisk')    DASH.loadAtRisk();
-  if (tab === 'lookup')    { /* ready on demand */ }
-  if (tab === 'report')    DASH.loadReport(0);
+  if (tab === 'analytics')  DASH.loadAnalytics();
+  if (tab === 'atrisk')     DASH.loadAtRisk();
+  if (tab === 'lookup')     { /* ready on demand */ }
+  if (tab === 'report')     DASH.loadReport(0);
+  if (tab === 'volunteers') DASH.loadVolunteerDash();
 };
 
 /* ── ANALYTICS TAB ── */
