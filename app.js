@@ -2117,25 +2117,49 @@ const CM = {
 
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) { toast('⚠️ Allow pop-ups to print tags','err'); return; }
-    win.document.write(
-      '<!DOCTYPE html><html><head>'
+
+    // Write HTML without inline scripts to avoid escaping issues
+    const fullHTML = '<!DOCTYPE html><html><head>'
       + '<meta charset="utf-8">'
-      + '<title>Name Tags — ' + family.parentName + ' Family</title>'
+      + '<title>Name Tags</title>'
       + '<style>' + css + '</style>'
-      + '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>'
       + '</head><body>'
       + pagesHTML
-      + '<script>'
-      + 'window.addEventListener("load",function(){'
-      +   qrScript
-      +   'setTimeout(function(){window.print();},1200);'
-      + '});'
-      + '<\/script>'
-      + '</body></html>'
-    );
+      + '</body></html>';
+
+    win.document.open();
+    win.document.write(fullHTML);
     win.document.close();
+
+    // Inject QRCode lib after DOM is written
+    const qrLib = win.document.createElement('script');
+    qrLib.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    qrLib.onload = function() {
+      win.setTimeout(function() {
+        qrMeta.forEach(function(q) {
+          const el = win.document.getElementById(q.id);
+          if (!el) return;
+          el.innerHTML = '';
+          new win.QRCode(el, {
+            text: q.url,
+            width: 88,
+            height: 88,
+            colorDark: '#064e3b',
+            colorLight: '#ffffff',
+            correctLevel: win.QRCode.CorrectLevel.M
+          });
+        });
+        win.setTimeout(function() { win.print(); }, 900);
+      }, 150);
+    };
+    qrLib.onerror = function() {
+      win.setTimeout(function() { win.print(); }, 500);
+      toast('⚠️ QR library failed to load', 'err');
+    };
+    win.document.head.appendChild(qrLib);
+
     closeModal('cmPrintModal');
-    toast('\uD83D\uDDA8\uFE0F Printing tags — child + parent stub per child','ok');
+    toast('\uD83D\uDDA8\uFE0F Opening print preview\u2026', 'ok');
   }
 };
 
