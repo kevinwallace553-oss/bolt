@@ -2096,12 +2096,22 @@ const CM = {
       const grade      = child.grade ? 'Grade ' + child.grade : '';
       const qrId       = 'qr_' + ci;
 
-      // QR encodes a tel: link — most reliable, works on ALL phone cameras instantly
-      // When scanned: iPhone/Android opens phone dialer pre-filled with parent number
       const childName = (child.firstName + ' ' + child.lastName).trim();
       const tel = (family.phone || '').replace(/\D/g, '');
-      // tel: URI is the most universally supported QR target on all cameras
-      const qrURL = 'tel:' + tel;
+      const allergyNote = (child.allergies && child.allergies.toLowerCase() !== 'none' && child.allergies.trim())
+        ? ' ⚠️ Allergy alert: ' + child.allergies.trim() + '.' : '';
+      const gradeNote = child.grade ? ' (Grade ' + child.grade + ')' : '';
+      const roomNote  = child.room  ? ' from ' + child.room : '';
+
+      // SMS URI — opens Messages app with a pre-written pickup text ready to send
+      // Supported natively on iOS (sms:number&body=msg) and Android (sms:number?body=msg)
+      const smsBody = 'Hi ' + family.parentName + '! This is Children\u2019s Ministry. '
+        + 'Please come pick up ' + childName + roomNote + gradeNote + '. '
+        + 'Your pickup code is ' + secCode + '.' + allergyNote
+        + ' Thank you! \uD83D\uDE4F';
+
+      // Use ?body= for Android; iOS also accepts ?body= in modern versions
+      const qrURL = 'sms:' + tel + '?body=' + encodeURIComponent(smsBody);
 
       return (
         // ── PAGE: CHILD TAG (horizontal/landscape) left | right ──
@@ -2120,7 +2130,7 @@ const CM = {
             + '</div>'
             // Right section — QR + pickup code
             + '<div class="tag-right">'
-              + '<div class="tag-scan-lbl">SCAN TO PAGE PARENT</div>'
+              + '<div class="tag-scan-lbl">SCAN TO TEXT PARENT</div>'
               + '<div class="qr-wrap" id="' + qrId + '"></div>'
               + '<div class="tag-code-lbl">PICKUP CODE</div>'
               + '<div class="tag-code">' + secCode + '</div>'
