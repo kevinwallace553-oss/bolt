@@ -352,8 +352,7 @@ const KIOSK = {
     if(!sel.value){toast('⚠️ Select your name first','err');return;}
     _kLeader = sel.value;
     document.getElementById('epGreeting').textContent = `Hey, ${_kLeader}!`;
-    document.getElementById('leaderLogin').classList.add('gone');
-    document.getElementById('eventPicker').classList.add('open');
+      document.getElementById('eventPicker').classList.add('open');
   },
 
   selectEvent(el, name, icon, desc) {
@@ -936,9 +935,8 @@ const KIOSK = {
 /* ── KIOSK NAV ── */
 function showKiosk() {
   showView('vKiosk');
-  document.getElementById('leaderLogin').classList.remove('gone');
-  document.getElementById('eventPicker').classList.remove('open');
-  KIOSK.init();
+  const ep = document.getElementById('eventPicker');
+  if(ep) ep.classList.add('open');
 }
 function showDash() { showView('vDash'); }
 
@@ -1120,18 +1118,22 @@ const DASH = {
     // Re-render with filtered data
     this.renderFeed(filtered);
 
-    // Build filtered stats
-    const dash = this._rawDash || {};
-    const todayCount = filtered.length;
-    const newCount   = filtered.filter(ci=>(ci.type||'').toLowerCase()==='new').length;
+    // Compute today's count correctly from filtered checkins
+    const today = new Date().toISOString().slice(0,10);
+    const todayCheckins = filtered.filter(ci => {
+      const d = (ci.time||ci.date||ci.checkinTime||'').slice(0,10);
+      return d === today;
+    });
+    const todayCount = todayCheckins.length;
+    const newCount   = todayCheckins.filter(ci=>(ci.type||'').toLowerCase()==='new'||(ci.isNew===true)).length;
 
     const el1 = document.getElementById('dStatToday');
     const el2 = document.getElementById('dStatNew');
-    if(el1) el1.textContent = todayCount || '0';
-    if(el2) el2.textContent = newCount   || '0';
+    if(el1) el1.textContent = todayCount;
+    if(el2) el2.textContent = newCount;
 
-    // Keep total/leaders from raw data (they don't change by filter)
-    this.renderStats(dash, true);
+    // Keep total/leaders from raw data (they reflect the full registered roster)
+    this.renderStats(this._rawDash || {}, true);
   },
 
   updateStatLabels(ministry) {
@@ -3107,8 +3109,7 @@ const _origBannerConfig = {
       if (!_kLeader) { toast('⚠️ Select your name first','err'); return; }
       _kEvent = 'Small Groups';
       document.getElementById('eventPicker').classList.remove('open');
-      document.getElementById('leaderLogin').classList.add('gone');
-      SG.open();
+          SG.open();
       API.checkIn({type:'leader',leader:_kLeader},{leader:_kLeader,event:'Small Groups',type:'leader'}).catch(()=>{});
       toast('👥 Small Groups session started','ok');
       return;
