@@ -369,6 +369,25 @@ const KIOSK = {
       eventName = document.getElementById('epOtherInput').value.trim();
       if(!eventName){toast('⚠️ Enter event name','err');return;}
     }
+
+    // Auto-set leader from signed-in session — no leader login screen needed
+    if(!_kLeader && SESSION.name) _kLeader = SESSION.name;
+    if(!_kLeader) _kLeader = 'Staff';
+
+    // Update greeting with leader name
+    const greetEl = document.getElementById('epGreeting');
+    if(greetEl && SESSION.name) greetEl.textContent = 'Hey, ' + SESSION.name + '!';
+
+    // ── Small Groups → skip kiosk, go straight to SG view ──
+    if(eventName === 'Small Groups') {
+      _kEvent = 'Small Groups';
+      document.getElementById('eventPicker').classList.remove('open');
+      SG.open();
+      API.checkIn({type:'leader',leader:_kLeader},{leader:_kLeader,event:'Small Groups',type:'leader'}).catch(()=>{});
+      toast('👥 Small Groups session started','ok');
+      return;
+    }
+
     _kEvent = eventName;
     document.getElementById('eventPicker').classList.remove('open');
     document.getElementById('kLeaderName').textContent = _kLeader;
@@ -440,15 +459,15 @@ const KIOSK = {
     if (acts) {
       if (cfg.firstTimer) {
         acts.innerHTML = `
-          <button class="k-btn amber full" onclick="KIOSK.openFirstTimerFlow()" style="background:rgba(245,158,11,0.18);border-color:rgba(245,158,11,0.5);color:#fcd34d;font-weight:800">\${cfg.firstLbl}</button>
-          <button class="k-btn" onclick="KIOSK.openBatch()">\${cfg.batchLbl ? '👥 ' + cfg.batchLbl : '👥 Batch Check-In'}</button>
-          <button class="k-btn" onclick="KIOSK.openNewStudent()">\${cfg.addBtn}</button>
-          <button class="k-btn" onclick="KIOSK.openManage()">📋 \${cfg.manageLbl}</button>`;
+          <button class="k-btn amber full" onclick="KIOSK.openFirstTimerFlow()" style="background:rgba(245,158,11,0.18);border-color:rgba(245,158,11,0.5);color:#fcd34d;font-weight:800">${cfg.firstLbl}</button>
+          <button class="k-btn" onclick="KIOSK.openBatch()">${cfg.batchLbl ? '👥 ' + cfg.batchLbl : '👥 Batch Check-In'}</button>
+          <button class="k-btn" onclick="KIOSK.openNewStudent()">${cfg.addBtn}</button>
+          <button class="k-btn" onclick="KIOSK.openManage()">📋 ${cfg.manageLbl}</button>`;
       } else {
         acts.innerHTML = `
-          <button class="k-btn teal full" onclick="KIOSK.openBatch()">👥 \${cfg.batchLbl || 'Batch Check-In'}</button>
-          <button class="k-btn" onclick="KIOSK.openNewStudent()">\${cfg.addBtn}</button>
-          <button class="k-btn" onclick="KIOSK.openManage()">📋 \${cfg.manageLbl}</button>`;
+          <button class="k-btn teal full" onclick="KIOSK.openBatch()">👥 ${cfg.batchLbl || 'Batch Check-In'}</button>
+          <button class="k-btn" onclick="KIOSK.openNewStudent()">${cfg.addBtn}</button>
+          <button class="k-btn" onclick="KIOSK.openManage()">📋 ${cfg.manageLbl}</button>`;
       }
     }
 
@@ -3169,27 +3188,7 @@ const _origBannerConfig = {
 /* ════════════════════════════════════════════════════
    SINGLE UNIFIED confirmEvent — handles all 4 events
 ════════════════════════════════════════════════════ */
-;(function() {
-  const _orig = KIOSK.confirmEvent.bind(KIOSK);
-
-  KIOSK.confirmEvent = function() {
-    const name = _selectedEvent?.name;
-
-    // ── Small Groups → go to SG view ──
-    if (name === 'Small Groups') {
-      if (!_kLeader) { toast('⚠️ Select your name first','err'); return; }
-      _kEvent = 'Small Groups';
-      document.getElementById('eventPicker').classList.remove('open');
-          SG.open();
-      API.checkIn({type:'leader',leader:_kLeader},{leader:_kLeader,event:'Small Groups',type:'leader'}).catch(()=>{});
-      toast('👥 Small Groups session started','ok');
-      return;
-    }
-
-    // ── All other events → standard kiosk flow ──
-    _orig();
-  };
-})();
+/* confirmEvent unified above — Small Groups handled inside KIOSK.confirmEvent */
 
 /* ════════════════════════════════════════════════════
    SMALL GROUPS MODULE
