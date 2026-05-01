@@ -196,6 +196,21 @@ function closeDrawer() {
 /* ── INIT ── */
 window.addEventListener('load', async () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  // If this is an RSVP link, show ONLY the RSVP page — never load auth or app
+  const _params = new URLSearchParams(window.location.search);
+  if (_params.get('rsvp') && _params.get('r')) {
+    // Hide ALL views and show only the standalone RSVP page
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.body.style.background = '#0a1628';
+    const rsvpPage = document.getElementById('vRsvp');
+    if (rsvpPage) rsvpPage.style.display = 'flex';
+    // No auth, no session, no app — just RSVP
+    setTimeout(() => SCHED.handleRsvp(_params.get('rsvp'), _params.get('r')), 400);
+    return; // Stop here — do NOT load the app
+  }
+
+  // Normal app load — require authentication
   setTimeout(() => showView('vAuth'), 500);
 });
 
@@ -3778,7 +3793,7 @@ const SCHED = {
             </div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">${r.eventName}</div>
           </div>
-          <button onclick="document.getElementById('vRsvp').style.display='none';showView('vHome')" style="padding:12px 24px;border-radius:12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;font-family:sans-serif;font-size:14px;font-weight:700;cursor:pointer">Go to Bolt Kiosk</button>
+          <button onclick="window.location.href=window.location.pathname" style="padding:12px 24px;border-radius:12px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;font-family:sans-serif;font-size:14px;font-weight:700;cursor:pointer">Open Bolt Kiosk</button>
         </div>`;
       } else {
         el.innerHTML = '<div style="text-align:center;padding:20px"><div style="font-size:40px;margin-bottom:12px">⚠️</div><div style="color:#fca5a5">Could not record response. The link may have expired.</div></div>';
@@ -3803,16 +3818,6 @@ function showSchedule() {
   SCHED.load().catch(e => console.error('Schedule load error:', e));
 }
 
-/* ── Handle RSVP links on page load ── */
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const rsvp = params.get('rsvp');
-  const r = params.get('r');
-  if (rsvp && r) {
-    window.addEventListener('load', function() {
-      setTimeout(() => SCHED.handleRsvp(rsvp, r), 800);
-    });
-  }
-})();
+/* RSVP link handling moved to main load handler for security */
 
 /* ── Add to API ── */
