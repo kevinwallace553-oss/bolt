@@ -810,3 +810,186 @@ body.offline .offline-badge { display: block; }
 .dash-evt-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);font-family:var(--body);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s ease;-webkit-tap-highlight-color:transparent}
 .dash-evt-btn.active,.dash-evt-btn:hover{opacity:1!important;font-weight:800!important;border-width:2px!important}
 .dash-evt-btn.active{background:rgba(255,255,255,0.12);color:#fff}
+
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE — Full responsive overhaul
+   Target: 375px–430px (iPhone SE → iPhone 15 Pro Max)
+═══════════════════════════════════════════════════════ */
+
+/* ── BASE MOBILE ── */
+@media (max-width: 600px) {
+
+  /* Home screen */
+  #vHome { padding: 14px 12px; padding-top: calc(14px + var(--safe-t)); }
+  .home-inner > div:first-child { flex-direction: column; gap: 10px; align-items: flex-start !important; }
+  .home-cards { grid-template-columns: 1fr; gap: 10px; }
+  .home-card-wide { grid-column: 1 / -1; }
+
+  /* Home cards — more compact */
+  #vHome [style*="border-radius:24px"][style*="padding:28px"] {
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
+  }
+  #vHome [style*="font-size:20px"][style*="font-weight:800"] {
+    font-size: 15px !important;
+  }
+  #vHome [style*="width:60px"] {
+    width: 44px !important; height: 44px !important;
+    font-size: 20px !important;
+    border-radius: 12px !important;
+  }
+  #vHome [style*="font-size:13px;color:var(--muted)"] {
+    display: none; /* hide long description on mobile */
+  }
+  #vHome [style*="font-size:10px;font-weight:700;padding:3px 10px"] {
+    display: none; /* hide badges on mobile */
+  }
+  #vHome .home-nav { padding: 10px 14px; gap: 8px; }
+  #vHome [style*="font-size:10px;font-weight:600;letter-spacing:1px"] {
+    font-size: 8px !important;
+  }
+
+  /* Clock & greeting */
+  #homeName { display: none !important; }
+  #homeGreeting { font-size: 16px !important; }
+
+  /* Kiosk layout — stack vertically on mobile */
+  .k-layout { flex-direction: column !important; }
+  .k-side {
+    flex-direction: row !important;
+    width: 100% !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--rim) !important;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .k-logo-box { width: 36px !important; height: 36px !important; border-radius: 10px !important; flex-shrink: 0; }
+  .k-brand-text { flex: 1 !important; text-align: left !important; }
+  .k-brand-name { font-size: 13px !important; }
+  .k-brand-tag { font-size: 8px !important; }
+  .k-stats-row { flex-direction: row !important; gap: 6px !important; }
+  .k-stat { min-width: 0 !important; flex: 1 !important; padding: 6px 8px !important; border-radius: 10px !important; }
+  .k-stat-val { font-size: 18px !important; }
+  .k-stat-lbl { font-size: 8px !important; }
+  .k-stat-icon { font-size: 14px !important; }
+  .k-leader-box { width: 100% !important; padding: 6px 10px !important; border-radius: 10px !important; }
+  .k-leader-name { font-size: 12px !important; }
+  .k-side-btns { flex-direction: row !important; gap: 6px !important; width: 100% !important; }
+  .k-side-btn { padding: 6px 10px !important; font-size: 10px !important; flex: 1 !important; text-align: center; }
+  .k-main { padding: 10px 10px 80px !important; }
+  #kEventBanner { border-radius: 10px !important; padding: 8px 12px !important; margin-bottom: 8px !important; }
+  #kActionsRow .k-btn { padding: 10px 8px !important; font-size: 12px !important; border-radius: 10px !important; }
+
+  /* Event picker */
+  .ep-card { max-height: 94vh !important; border-radius: 20px !important; }
+  .ep-title { font-size: 20px !important; }
+  .ep-greeting { font-size: 13px !important; }
+  .ep-opt { padding: 10px 12px !important; border-radius: 10px !important; margin-bottom: 6px !important; }
+  .ep-opt-name { font-size: 14px !important; }
+  .ep-opt-desc { font-size: 10px !important; }
+  .ep-opt-icon { width: 36px !important; height: 36px !important; font-size: 16px !important; border-radius: 9px !important; }
+
+  /* Dashboard */
+  .dash-top { padding: 8px 12px !important; gap: 6px !important; }
+  .dash-top .d-logo { width: 28px !important; height: 28px !important; }
+  .dash-top .d-title { font-size: 12px !important; }
+  .d-btn { padding: 5px 8px !important; font-size: 10px !important; border-radius: 8px !important; }
+  .dash-nav { gap: 0 !important; padding: 0 !important; }
+  .dash-nav-btn { font-size: 10px !important; padding: 8px 10px !important; }
+  .stat-strip { grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; padding: 10px !important; }
+  .stat-card { padding: 10px 8px !important; border-radius: 12px !important; }
+  .stat-val { font-size: 24px !important; }
+  .stat-lbl { font-size: 8px !important; }
+  .stat-sub { font-size: 8px !important; }
+  .dash-body { padding: 10px !important; gap: 10px !important; }
+  .panel { border-radius: 14px !important; }
+  .panel-head { padding: 10px 12px !important; }
+  .panel-title { font-size: 12px !important; }
+  .panel-body { padding: 0 6px 6px !important; }
+
+  /* Ministry switcher — scrollable pills */
+  #vDash > div:nth-child(3) { padding: 6px 10px 6px !important; gap: 5px !important; }
+  .dash-evt-btn { padding: 5px 10px !important; font-size: 10px !important; }
+
+  /* Live feed */
+  .feed-item { padding: 10px 10px !important; }
+  .feed-av { width: 34px !important; height: 34px !important; font-size: 11px !important; }
+  .feed-name { font-size: 12px !important; }
+  .feed-meta { font-size: 10px !important; }
+
+  /* CM / Families */
+  #vCM .k-search-wrap, #vSmallGroups .k-search-wrap, #vVolunteers .k-search-wrap {
+    padding: 8px 10px !important;
+  }
+
+  /* Modals */
+  .modal-sheet { border-radius: 20px 20px 0 0 !important; padding: 16px 14px 24px !important; }
+  .modal-title { font-size: 18px !important; margin-bottom: 12px !important; }
+  .form-grid { gap: 8px !important; }
+  .fg-label { font-size: 10px !important; }
+  .fg-inp { font-size: 15px !important; padding: 10px 12px !important; border-radius: 10px !important; }
+  .modal-save { padding: 13px !important; font-size: 15px !important; border-radius: 12px !important; }
+  .modal-cancel { padding: 11px !important; font-size: 13px !important; }
+
+  /* Volunteer & SG views */
+  #vVolunteers > div:first-child, #vSmallGroups > div:first-child {
+    padding: 10px 12px !important;
+    padding-top: calc(10px + var(--safe-t)) !important;
+    gap: 6px !important;
+  }
+
+  /* Bottom nav safe area */
+  #vKiosk, #vDash, #vCM, #vVolunteers, #vSmallGroups {
+    padding-bottom: calc(var(--safe-b)) !important;
+  }
+}
+
+/* ── EXTRA SMALL (iPhone SE, 375px) ── */
+@media (max-width: 380px) {
+  .stat-strip { grid-template-columns: repeat(2, 1fr) !important; }
+  .ep-title { font-size: 18px !important; }
+  .k-side-btn { font-size: 9px !important; padding: 5px 6px !important; }
+  .dash-nav-btn { font-size: 9px !important; padding: 7px 6px !important; }
+  #vHome [style*="font-size:22px;font-weight:900"] { font-size: 28px !important; }
+}
+
+/* ── TABLET (601px–899px) ── */
+@media (min-width: 601px) and (max-width: 899px) {
+  .home-cards { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-strip { grid-template-columns: repeat(3, 1fr) !important; }
+  .k-side { width: 220px !important; }
+}
+
+/* ── iOS PWA — bottom safe area ── */
+:root {
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+/* ── Touch improvements ── */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap targets on touch devices */
+  .k-side-btn { min-height: 40px; }
+  .dash-nav-btn { min-height: 40px; }
+  .ep-opt { min-height: 52px; }
+  button { -webkit-tap-highlight-color: transparent; }
+  input, select { font-size: 16px !important; } /* prevents iOS zoom on focus */
+}
+
+/* ── Mobile Bottom Nav ── */
+#mobileNav { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.mob-nav-btn .mob-nav-lbl { color: var(--muted); transition: color .15s; }
+.mob-nav-btn.active { background: rgba(13,148,136,0.12) !important; }
+.mob-nav-btn.active .mob-nav-lbl { color: var(--teal) !important; }
+.mob-nav-btn.active span:first-child { filter: drop-shadow(0 0 4px var(--teal)); }
+@media (max-width: 600px) {
+  /* Push scrollable content above mobile nav */
+  .view { padding-bottom: calc(64px + var(--safe-b)) !important; }
+  /* Hide sidebar home/theme/signout buttons on mobile — use bottom nav instead */
+  .k-side-btns .k-side-btn:not(.danger) { display: none !important; }
+}

@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#060e10">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Bolt Kiosk">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="apple-touch-startup-image" href="./icon-512.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1057,6 +1059,31 @@
     </div>
   </div>
 </div>
+
+
+<!-- ══ MOBILE BOTTOM NAV (≤600px only) ══ -->
+<nav id="mobileNav" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--ink2);border-top:1px solid var(--rim);padding:8px 4px;padding-bottom:calc(8px + var(--safe-b));flex-direction:row;align-items:center;justify-content:space-around;gap:2px">
+  <button class="mob-nav-btn active" data-view="vHome" onclick="showView('vHome')" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:12px;min-width:52px;transition:background .15s">
+    <span style="font-size:20px">🏠</span>
+    <span style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.3px" class="mob-nav-lbl">Home</span>
+  </button>
+  <button class="mob-nav-btn" data-view="vKiosk" onclick="showKiosk()" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:12px;min-width:52px;transition:background .15s">
+    <span style="font-size:20px">⚡</span>
+    <span style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.3px" class="mob-nav-lbl">Events</span>
+  </button>
+  <button class="mob-nav-btn" data-view="vDash" onclick="showView('vDash')" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:12px;min-width:52px;transition:background .15s">
+    <span style="font-size:20px">📊</span>
+    <span style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.3px" class="mob-nav-lbl">Dashboard</span>
+  </button>
+  <button class="mob-nav-btn" data-view="vCM" onclick="showCM()" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:12px;min-width:52px;transition:background .15s">
+    <span style="font-size:20px">🧒</span>
+    <span style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.3px" class="mob-nav-lbl">Children</span>
+  </button>
+  <button class="mob-nav-btn" data-view="vVolunteers" onclick="openVolDeptModal()" style="display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:12px;min-width:52px;transition:background .15s">
+    <span style="font-size:20px">🛡️</span>
+    <span style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.3px" class="mob-nav-lbl">Volunteers</span>
+  </button>
+</nav>
 
 </body>
 </html>

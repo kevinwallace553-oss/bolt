@@ -63,9 +63,17 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
-  // Orientation fix
   applyOrientation();
   if (id === 'vDash') DASH.init();
+  // Mobile bottom nav — only show on small screens for main views
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.mob-nav-btn[data-view="'+id+'"]');
+  if(btn) btn.classList.add('active');
+  const mobNav = document.getElementById('mobileNav');
+  if(mobNav) {
+    const mainViews = ['vHome','vKiosk','vDash','vCM','vVolunteers','vSmallGroups'];
+    mobNav.style.display = (window.innerWidth<=600 && mainViews.includes(id)) ? 'flex' : 'none';
+  }
 }
 
 /* ── ORIENTATION / RESPONSIVE ── */

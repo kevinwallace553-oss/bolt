@@ -1,9 +1,9 @@
 {
   "name": "Bolt Kiosk",
-  "short_name": "Bolt Kiosk",
-  "description": "Youth Check-In System",
-  "start_url": "/bolt/",
-  "scope": "/bolt/",
+  "short_name": "Bolt",
+  "description": "Ministry Check-In at a Breeze",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#060e10",
   "theme_color": "#0d9488",
