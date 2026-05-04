@@ -5,14 +5,25 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxZF9WHP1F99CcE5LgzzLLksd7CnSB4HoYXT7-klO6bSsDspIT8QPRfH5mttsB_ZfE1/exec';
 
 async function gasRun(fn, ...args) {
-  const body = JSON.stringify({ fn, args });
+  // Always include the session token so the server can validate it
+  const token = SESSION?.token || '';
+  const body = JSON.stringify({ fn, args, token });
   const res = await fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' }, // avoid CORS preflight
     body
   });
   const text = await res.text();
-  try { return JSON.parse(text); } catch(e) { return { success: false, error: text }; }
+  try {
+    const data = JSON.parse(text);
+    // If server says session expired, force sign-out
+    if(data?.code === 'AUTH_REQUIRED' && typeof showView === 'function') {
+      Object.assign(SESSION, {token:'',name:'',role:'',username:''});
+      showView('vAuth');
+      if(typeof toast === 'function') toast('⚠️ Session expired — please sign in again','err');
+    }
+    return data;
+  } catch(e) { return { success: false, error: text }; }
 }
 
 // Auth
