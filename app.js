@@ -1196,51 +1196,197 @@ function showKiosk() {
   const lbox = document.getElementById('kLeaderBox');
   if(lbox) lbox.classList.remove('show');
 }
-function showDash() {
-  // Navigate directly to the GAS dashboard — no old view flash
-  const tok = SESSION?.token || '';
-  const orgId = SESSION?.orgId || '';
-  if (!tok) { showView('vAuth'); return; }
-  const url = GAS_URL + '?page=dashboard&token=' + encodeURIComponent(tok) + '&orgId=' + encodeURIComponent(orgId);
-  window.location.href = url;
-}
+function showDash() { showView('vDash'); }
 
 /* ════════════════════════════════════════════════════
-   DASHBOARD
+   DASHBOARD — Embedded directly in PWA
+   Uses SESSION token directly — no cross-origin issues
 ════════════════════════════════════════════════════ */
 const DASH = {
+  _data: { dash:{}, students:[] },
+  _sent: {},
+  _view: 'overview',
+  _timer: null,
+
   init() {
-    // Open the new GAS-served dashboard in the same window
-    const tok = SESSION?.token || '';
-    const orgId = SESSION?.orgId || '';
-    const dashUrl = GAS_URL + '?page=dashboard&token=' + encodeURIComponent(tok) + '&orgId=' + encodeURIComponent(orgId);
-    window.location.href = dashUrl;
+    this._buildUI();
+    this._loadData();
+    clearInterval(this._timer);
+    this._timer = setInterval(() => this._loadData(true), 30000);
   },
-  
-  openDirect() {
-    const tok = SESSION?.token || '';
-    const orgId = SESSION?.orgId || '';
-    const url = GAS_URL + '?page=dashboard&token=' + encodeURIComponent(tok) + '&orgId=' + encodeURIComponent(orgId);
-    window.open(url, '_blank');
+
+  _buildUI() {
+    const el = document.getElementById('vDash');
+    if (!el) return;
+    el.innerHTML = `<div style="display:grid;grid-template-rows:52px 1fr;height:100%;overflow:hidden;font-family:var(--font,-apple-system,sans-serif)">
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;background:rgba(8,14,20,.97);border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">
+  <span style="font-size:14px;font-weight:800;color:#fff">BOLT <span style="color:#03d5e1">KIOSK</span></span>
+  <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#0fa86a;background:rgba(15,168,106,.1);border:1px solid rgba(15,168,106,.25);padding:3px 10px;border-radius:100px"><span style="width:6px;height:6px;border-radius:50%;background:#0fa86a;animation:bkPulse 1.4s ease infinite;display:inline-block"></span>LIVE</div>
+  <div style="flex:1"></div>
+  <span id="dUpd" style="font-size:11px;color:#5a8a9a"></span>
+  <button onclick="DASH._loadData()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:rgba(3,213,225,.12);border:1px solid rgba(3,213,225,.25);color:#03d5e1;transition:all .18s" id="dRefBtn">⟳ Refresh</button>
+  <button onclick="showHome()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:#0d1a24;border:1px solid rgba(255,255,255,.13);color:#5a8a9a;transition:all .18s">← Home</button>
+</div>
+<div style="display:grid;grid-template-columns:190px 1fr;overflow:hidden">
+  <nav style="background:#0d1a24;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column">
+    <div style="flex:1;overflow-y:auto;padding:10px 8px">
+      <div style="font-size:9px;font-weight:800;color:#5a8a9a;text-transform:uppercase;letter-spacing:2px;padding:8px 10px 5px">Views</div>
+      <button class="dn on" id="dn-ov"  onclick="DASH._show('overview',this)">📊 Overview</button>
+      <button class="dn"    id="dn-ci"  onclick="DASH._show('checkins',this)">✅ Check-ins</button>
+      <button class="dn"    id="dn-bd"  onclick="DASH._show('birthdays',this)">🎂 Birthdays</button>
+    </div>
+    <div style="padding:8px;border-top:1px solid rgba(255,255,255,.07)">
+      <button onclick="showHome()" class="dn">🏠 Home</button>
+      <button onclick="AUTH.logout()" class="dn" style="color:#ef4444">← Sign Out</button>
+    </div>
+  </nav>
+  <main style="display:flex;flex-direction:column;overflow:hidden;background:#080e14">
+    <div style="padding:14px 20px 12px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div id="dIcon" style="font-size:22px">📊</div>
+      <div><div id="dTitle" style="font-size:17px;font-weight:800;color:#e8f4f8">Overview</div><div id="dSub" style="font-size:11px;color:#5a8a9a;margin-top:2px">Today's attendance at a glance</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:18px 20px 24px;scrollbar-width:thin" id="dScroll">
+      <div id="dErr" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 14px;color:#f87171;font-size:13px;margin-bottom:14px;display:none"></div>
+      <div id="dv-overview">
+        <div id="dStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px"></div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#5a8a9a;margin-bottom:10px">Live Feed <span id="dFC" style="background:#112030;border:1px solid rgba(255,255,255,.07);border-radius:100px;padding:2px 7px;font-size:10px;margin-left:4px">0</span></div>
+        <div id="dFeed"></div>
+      </div>
+      <div id="dv-checkins" style="display:none">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#5a8a9a;margin-bottom:10px">All Check-ins Today <span id="dCC" style="background:#112030;border:1px solid rgba(255,255,255,.07);border-radius:100px;padding:2px 7px;font-size:10px;margin-left:4px">0</span></div>
+        <div id="dCI"></div>
+      </div>
+      <div id="dv-birthdays" style="display:none">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#5a8a9a;margin-bottom:8px">Birthdays — Next 30 Days <span id="dBC" style="background:#112030;border:1px solid rgba(255,255,255,.07);border-radius:100px;padding:2px 7px;font-size:10px;margin-left:4px">0</span></div>
+        <p style="font-size:12px;color:#5a8a9a;margin-bottom:12px">Click Send to email a birthday message.</p>
+        <div id="dBdays"></div>
+      </div>
+    </div>
+  </main>
+</div></div>`;
+    if(!document.getElementById('dnStyle')){
+      const s=document.createElement('style');s.id='dnStyle';
+      s.textContent='.dn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:#5a8a9a;background:none;border:none;cursor:pointer;text-align:left;margin-bottom:2px;transition:all .18s}.dn:hover{background:#112030;color:#e8f4f8}.dn.on{background:rgba(3,213,225,.12);border:1px solid rgba(3,213,225,.25);color:#03d5e1}@keyframes dIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}';
+      document.head.appendChild(s);
+    }
   },
-  
-  // Stub methods to prevent errors from any remaining calls
-  refresh() {},
-  applyFilters() {},
-  renderStats() {},
-  renderFeed() {},
-  renderBirthdays() {},
-  renderWeek() {},
-  renderAtRisk() {},
-  renderCMStats() {},
-  loadVolunteerDash() {},
-  renderVolunteerDash() {},
-  pickMinistry() {},
-  switchMinistry() {},
-  _ministry: 'all',
-  _rawDash: null,
-  _rawCheckins: [],
-};
+
+  _show(v,btn){
+    this._view=v;
+    document.querySelectorAll('.dn').forEach(b=>b.classList.remove('on'));
+    if(btn)btn.classList.add('on');
+    ['overview','checkins','birthdays'].forEach(k=>{const e=document.getElementById('dv-'+k);if(e)e.style.display=k===v?'block':'none';});
+    const cfg={overview:{i:'📊',t:'Overview',s:"Today's attendance at a glance"},checkins:{i:'✅',t:"Today's Check-ins",s:'Everyone who checked in today'},birthdays:{i:'🎂',t:'Birthdays',s:'Next 30 days — click Send to message them'}};
+    const c=cfg[v]||cfg.overview;
+    ['dIcon','dTitle','dSub'].forEach((id,j)=>{const e=document.getElementById(id);if(e)e.textContent=[c.i,c.t,c.s][j];});
+  },
+
+  async _loadData(silent){
+    const btn=document.getElementById('dRefBtn');
+    if(!silent&&btn){btn.disabled=true;btn.textContent='Loading…';}
+    try{
+      const [dash,students]=await Promise.all([API.getDashboard(),API.getAllStudents()]);
+      this._data.dash=dash||{};
+      this._data.students=Array.isArray(students)?students:(students||[]);
+      this._renderAll();
+      const u=document.getElementById('dUpd');if(u)u.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    }catch(e){this._showErr('Failed to load. Please refresh.');console.error('DASH error:',e);}
+    if(!silent&&btn){btn.disabled=false;btn.textContent='⟳ Refresh';}
+  },
+
+  _renderAll(){this._stats();this._feed();this._ci();this._bdays();},
+
+  _stats(){
+    const ci=this._data.dash?.checkins||[];
+    const mem=ci.filter(c=>c.role!=='leader'&&c.type!=='leader');
+    const ldr=ci.filter(c=>c.role==='leader'||c.type==='leader');
+    const nw=mem.filter(c=>c.firstTime||c.isNew||c.neverSeenBefore);
+    const cards=[
+      {l:'Checked In Today',v:mem.length,s:'Members present',col:'#03d5e1'},
+      {l:'Total Registered',v:this._data.students.length,s:'In database',col:'#0fa86a'},
+      {l:'Leaders Today',v:ldr.length,s:'On duty',col:'#8b5cf6'},
+      {l:'First Timers',v:nw.length,s:'New today',col:'#f59e0b'},
+      {l:'Upcoming Bdays',v:this._getBdays(30).length,s:'Next 30 days',col:'#ef4444'},
+    ];
+    const el=document.getElementById('dStats');if(!el)return;
+    el.innerHTML=cards.map((c,i)=>`<div style="background:#0d1a24;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;position:relative;overflow:hidden;animation:dIn .3s ease ${i*.07}s both"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${c.col},transparent)"></div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#5a8a9a;margin-bottom:8px">${c.l}</div><div style="font-size:32px;font-weight:900;color:#e8f4f8;line-height:1">${c.v}</div><div style="font-size:11px;color:#5a8a9a;margin-top:4px">${c.s}</div></div>`).join('');
+  },
+
+  _feed(){
+    const ci=this._data.dash?.checkins||[];
+    const fc=document.getElementById('dFC');if(fc)fc.textContent=ci.length;
+    const el=document.getElementById('dFeed');if(!el)return;
+    el.innerHTML=ci.length?this._feedHTML(ci.slice().reverse().slice(0,40)):this._empty('No check-ins yet today');
+  },
+
+  _ci(){
+    const ci=this._data.dash?.checkins||[];
+    const cc=document.getElementById('dCC');if(cc)cc.textContent=ci.length;
+    const el=document.getElementById('dCI');if(!el)return;
+    el.innerHTML=ci.length?this._feedHTML(ci.slice().reverse()):this._empty('No check-ins yet today');
+  },
+
+  _feedHTML(items){
+    const cols=['#0ea5e9','#8b5cf6','#f59e0b','#ec4899','#0fa86a','#f97316','#14b8a6'];
+    return items.map((c,i)=>{
+      const name=c.fullName||c.name||((c.firstName||'')+' '+(c.lastName||'')).trim()||'Unknown';
+      const init=name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+      const col=cols[Math.abs(this._hash(name))%cols.length];
+      let t='';try{const d=new Date(c.timestamp||c.time||'');if(!isNaN(d))t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){}
+      const isNew=c.firstTime||c.isNew||c.neverSeenBefore;
+      const isLdr=c.role==='leader'||c.type==='leader';
+      return `<div style="display:flex;align-items:center;gap:11px;padding:10px 13px;background:#0d1a24;border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:6px;animation:dIn .22s ease ${i*.03}s both"><div style="width:34px;height:34px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${init}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#e8f4f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._esc(name)}</div><div style="font-size:11px;color:#5a8a9a;margin-top:1px">${this._esc(c.event||'')}${c.department?' · '+this._esc(c.department):''}</div></div>${isNew?'<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:100px;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.2)">NEW</span>':isLdr?'<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:100px;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.2)">LEADER</span>':''}${t?`<span style="font-size:10px;color:#5a8a9a;flex-shrink:0">${t}</span>`:''}</div>`;
+    }).join('');
+  },
+
+  _getBdays(days){
+    const today=new Date();today.setHours(0,0,0,0);
+    return this._data.students.reduce((acc,s)=>{
+      const b=s.birthday||s.dob||'';if(!b)return acc;
+      try{const d=new Date(b);if(isNaN(d))return acc;let ny=new Date(today.getFullYear(),d.getMonth(),d.getDate());let diff=Math.floor((ny-today)/86400000);if(diff<0){ny=new Date(today.getFullYear()+1,d.getMonth(),d.getDate());diff=Math.floor((ny-today)/86400000);}if(diff<=days)acc.push({s,diff,age:today.getFullYear()-d.getFullYear()});}catch(e){}
+      return acc;
+    },[]).sort((a,b)=>a.diff-b.diff);
+  },
+
+  _bdays(){
+    const bdays=this._getBdays(30);
+    const bc=document.getElementById('dBC');if(bc)bc.textContent=bdays.length;
+    const el=document.getElementById('dBdays');if(!el)return;
+    if(!bdays.length){el.innerHTML=this._empty('No birthdays in the next 30 days');return;}
+    const cols=['#0ea5e9','#8b5cf6','#f59e0b','#ec4899','#0fa86a'];
+    el.innerHTML=bdays.map(b=>{
+      const s=b.s,name=((s.firstName||'')+' '+(s.lastName||'')).trim()||s.name||'Unknown';
+      const key=encodeURIComponent(s.id||name);
+      const isToday=b.diff===0,when=isToday?'🎉 Today!':b.diff===1?'Tomorrow':'In '+b.diff+'d';
+      const col=cols[Math.abs(this._hash(name))%cols.length];
+      const init=name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+      const hasContact=s.email||s.phone,isSent=this._sent[s.id||name];
+      return `<div style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:#0d1a24;border:1px solid ${isToday?'rgba(245,158,11,.35)':'rgba(255,255,255,.07)'};border-radius:10px;margin-bottom:7px${isToday?';background:rgba(245,158,11,.03)':''}"><div style="width:38px;height:38px;border-radius:9px;background:${col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">${init}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#e8f4f8">${this._esc(name)}</div><div style="font-size:11px;color:#5a8a9a;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.age?'Turning '+b.age+' · ':''}${s.email?'📧 '+this._esc(s.email):s.phone?'📱 '+this._esc(s.phone):'<i>No contact info</i>'}</div></div><span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;flex-shrink:0;background:${isToday?'rgba(245,158,11,.18)':'rgba(3,213,225,.1)'};color:${isToday?'#f59e0b':'#03d5e1'}">${when}</span>${hasContact?`<button id="dbb-${key}" onclick="DASH._sendBday('${key}','${encodeURIComponent(name)}','${encodeURIComponent(s.email||'')}','${encodeURIComponent(s.phone||'')}',${b.diff})" ${isSent?'disabled':''} style="display:flex;align-items:center;gap:4px;padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid ${isSent?'rgba(15,168,106,.35)':'rgba(3,213,225,.25)'};background:${isSent?'rgba(15,168,106,.08)':'rgba(3,213,225,.12)'};color:${isSent?'#0fa86a':'#03d5e1'};flex-shrink:0">${isSent?'✓ Sent':'Send 🎂'}</button>`:'<span style="font-size:10px;color:#5a8a9a">No contact</span>'}</div>`;
+    }).join('');
+  },
+
+  async _sendBday(keyE,nameE,emailE,phoneE,diff){
+    const key=decodeURIComponent(keyE),name=decodeURIComponent(nameE),email=decodeURIComponent(emailE),phone=decodeURIComponent(phoneE);
+    const btn=document.getElementById('dbb-'+keyE);
+    if(btn){btn.disabled=true;btn.textContent='Sending…';}
+    const first=name.split(' ')[0],isToday=diff===0;
+    const subj=isToday?'Happy Birthday, '+first+'! 🎉':'Your birthday is coming up, '+first+'! 🎂';
+    const msg=isToday?'Happy Birthday, '+first+'!\n\nWishing you a wonderful day filled with joy and blessings. We are so glad you are part of our community!\n\nWith love,\nThe Ministry Team':'Hi '+first+',\n\nYour birthday is just around the corner! We wanted to wish you an early Happy Birthday.\n\nWith love,\nThe Ministry Team';
+    try{
+      const r=await gasRun('sendBirthdayMessageAPI',email,phone,subj,msg,name);
+      if(r?.success){
+        this._sent[decodeURIComponent(keyE)]=true;
+        if(btn){btn.style.cssText=btn.style.cssText.replace(/color:[^;]+/,'color:#0fa86a').replace(/background:[^;]+/,'background:rgba(15,168,106,.08)').replace(/border:[^;]+/,'border:1px solid rgba(15,168,106,.35)');btn.textContent='✓ Sent';}
+        toast('Birthday message sent to '+first+'!','ok');
+      }else{if(btn){btn.disabled=false;btn.textContent='Send 🎂';}toast('Could not send: '+(r?.error||'Error'),'err');}
+    }catch(e){if(btn){btn.disabled=false;btn.textContent='Retry';}toast('Send failed','err');}
+  },
+
+  _empty(msg){return `<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px 20px;color:#5a8a9a;font-size:13px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>${msg}</span></div>`;},
+  _esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;},
+  _hash(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}return h;},
+  _showErr(msg){const e=document.getElementById('dErr');if(e){e.textContent=msg;e.style.display=msg?'block':'none';}},
+};;
 
 /* ════════════════════════════════════════════════════
    DASH EXTENSIONS — navTab, analytics, at-risk,
