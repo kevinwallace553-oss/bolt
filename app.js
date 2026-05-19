@@ -1225,7 +1225,7 @@ const DASH = {
   <div style="flex:1"></div>
   <span id="dUpd" style="font-size:11px;color:#5a8a9a"></span>
   <button onclick="DASH._loadData()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:rgba(3,213,225,.12);border:1px solid rgba(3,213,225,.25);color:#03d5e1;transition:all .18s" id="dRefBtn">⟳ Refresh</button>
-  <button onclick="showHome()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:#0d1a24;border:1px solid rgba(255,255,255,.13);color:#5a8a9a;transition:all .18s">← Home</button>
+  <button onclick="showView('vHome')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:#0d1a24;border:1px solid rgba(255,255,255,.13);color:#5a8a9a;transition:all .18s">← Home</button>
 </div>
 <div style="display:grid;grid-template-columns:190px 1fr;overflow:hidden">
   <nav style="background:#0d1a24;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column">
@@ -1236,8 +1236,8 @@ const DASH = {
       <button class="dn"    id="dn-bd"  onclick="DASH._show('birthdays',this)">🎂 Birthdays</button>
     </div>
     <div style="padding:8px;border-top:1px solid rgba(255,255,255,.07)">
-      <button onclick="showHome()" class="dn">🏠 Home</button>
-      <button onclick="AUTH.logout()" class="dn" style="color:#ef4444">← Sign Out</button>
+      <button onclick="showView('vHome')" class="dn">🏠 Home</button>
+      <button onclick="signOut()" class="dn" style="color:#ef4444">← Sign Out</button>
     </div>
   </nav>
   <main style="display:flex;flex-direction:column;overflow:hidden;background:#080e14">
@@ -1782,9 +1782,9 @@ DASH.reportPrev = function() { DASH.loadReport(DASH._reportOffset + 1); };
 DASH.reportNext = function() { if(DASH._reportOffset > 0) DASH.loadReport(DASH._reportOffset - 1); };
 
 /* also update at-risk count on overview */
-const _origRenderAtRisk = DASH.renderAtRisk.bind(DASH);
+const _origRenderAtRisk = (typeof DASH.renderAtRisk === 'function') ? DASH.renderAtRisk.bind(DASH) : null;
 DASH.renderAtRisk = function(data) {
-  _origRenderAtRisk(data);
+  if (_origRenderAtRisk) _origRenderAtRisk(data);
   const cnt = document.getElementById('atRiskCount');
   if(cnt){
     const students = data?.twoWeeks||data?.atRisk||(Array.isArray(data)?data:[]);

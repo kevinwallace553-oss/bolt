@@ -282,21 +282,20 @@ body{font-family:var(--body);background:var(--ink);color:var(--text);height:100%
 .bday-empty{padding:18px;text-align:center;color:var(--muted);font-size:12px;font-weight:500;width:100%}
 .modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:flex-end;justify-content:center}
 .modal.open{display:flex}
-.modal-sheet{background:var(--ink2);border:1px solid var(--rim);border-top:2px solid var(--green);border-radius:26px 26px 0 0;padding:6px 22px calc(20px + var(--safe-b));width:100%;max-width:580px;max-height:92vh;overflow-y:auto;animation:slideUp .35s cubic-bezier(0.22,0.68,0,1.1) both}
+.modal-sheet{background:var(--ink2);border:1px solid var(--rim);border-top:2px solid var(--green);border-radius:26px 26px 0 0;padding:6px 22px calc(24px + env(safe-area-inset-bottom,0px));width:100%;max-width:600px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box;animation:slideUp .35s cubic-bezier(0.22,0.68,0,1.1) both}
 .modal-handle{width:42px;height:4px;background:var(--rim2);border-radius:2px;margin:16px auto 22px}
-.modal-title{font-family:var(--font);font-size:24px;font-weight:800;text-align:center;margin-bottom:22px;color:var(--green)}
+.modal-title{font-family:var(--font);font-size:22px;font-weight:800;text-align:center;margin-bottom:20px;color:var(--green)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
 .fg{display:flex;flex-direction:column;gap:5px}
 .fg.full{grid-column:1/-1}
 .fg-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
-.fg-inp{padding:11px 13px;font-size:13px;font-family:var(--body);font-weight:500;background:var(--ink3);border:1px solid var(--rim);border-radius:var(--r);color:var(--text);transition:all .2s;outline:none;width:100%;-webkit-appearance:none}
+.fg-inp{padding:11px 13px;font-size:14px;font-family:var(--body);font-weight:500;background:var(--ink3);border:1px solid var(--rim);border-radius:var(--r);color:var(--text);transition:all .2s;outline:none;width:100%;box-sizing:border-box;-webkit-appearance:none}
 .fg-inp:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--glow)}
 .fg-inp::placeholder{color:var(--muted2)}
 .fg-inp[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.3)}
 .modal-save{width:100%;padding:14px;font-size:14px;font-family:var(--body);font-weight:800;border-radius:var(--r);border:none;background:var(--green);color:#fff;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px var(--glow);margin-top:18px}
 .modal-save:hover{background:var(--green2);transform:translateY(-1px)}
 .modal-cancel{width:100%;padding:11px;font-size:13px;font-family:var(--body);font-weight:600;border-radius:var(--r);border:1.5px solid var(--rim);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;margin-top:8px}
-@media(max-width:400px){.form-grid{grid-template-columns:1fr}.fg.full{grid-column:1}}
 .overlay{display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .overlay.open{display:block;animation:fadeUp .2s ease}
 .drawer{position:fixed;right:0;top:0;bottom:0;width:380px;max-width:96vw;background:var(--ink2);border-left:1px solid var(--rim);z-index:351;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(0.22,0.68,0,1.1)}
@@ -926,11 +925,11 @@ body.offline .offline-badge { display: block; }
   }
 
   /* Modals */
-  .modal-sheet { border-radius: 20px 20px 0 0 !important; padding: 16px 14px 24px !important; }
+  .modal-sheet { border-radius: 20px 20px 0 0 !important; padding: 4px 16px calc(20px + env(safe-area-inset-bottom,0px)) !important; }
   .modal-title { font-size: 18px !important; margin-bottom: 12px !important; }
   .form-grid { gap: 8px !important; }
   .fg-label { font-size: 10px !important; }
-  .fg-inp { font-size: 15px !important; padding: 10px 12px !important; border-radius: 10px !important; }
+  .fg-inp { font-size: 16px !important; padding: 12px 14px !important; border-radius: 12px !important; }
   .modal-save { padding: 13px !important; font-size: 15px !important; border-radius: 12px !important; }
   .modal-cancel { padding: 11px !important; font-size: 13px !important; }
 
@@ -1345,256 +1344,90 @@ button .bk-icon, a .bk-icon { margin-right:4px; }
 
 
 /* ═══════════════════════════════════════════════════════════
-   SCHEDULE MODAL — MOBILE FIX
-   Fixes black screen, clipped content, scroll issues on iOS
+   MODAL & FORM — UNIFIED MOBILE FIX
+   Single source of truth. Replaces all previous overrides.
 ═══════════════════════════════════════════════════════════ */
 
-/* Ensure modal overlay covers full screen on all devices */
+/* ── Modal overlay ── */
 .modal {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  inset: 0 !important;
   z-index: 9999 !important;
   background: rgba(0,0,0,0.75) !important;
   display: none;
   align-items: flex-end !important;
   justify-content: center !important;
-  -webkit-overflow-scrolling: touch;
 }
 .modal.open { display: flex !important; }
 
-/* Modal sheet — proper mobile sizing */
+/* ── Modal sheet: desktop bottom-sheet, max 600px wide ── */
 .modal-sheet {
   width: 100% !important;
-  max-width: 100% !important;
-  max-height: 92vh !important;
-  min-height: 30vh;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior: contain;
-  border-radius: 24px 24px 0 0 !important;
-  padding: 6px 18px calc(env(safe-area-inset-bottom, 20px) + 24px) !important;
-  box-sizing: border-box !important;
-  /* Prevent content from going under the notch */
-  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
-}
-
-@media(max-width:600px) {
-  .modal-sheet {
-    max-height: 88vh !important;
-    padding: 4px 14px calc(env(safe-area-inset-bottom, 16px) + 20px) !important;
-    border-radius: 20px 20px 0 0 !important;
-  }
-
-  /* Form grid — single column on mobile */
-  .form-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 14px !important;
-  }
-  .fg, .fg.full {
-    width: 100% !important;
-    grid-column: auto !important;
-  }
-
-  /* Input fields — prevent iOS zoom (must be 16px+) */
-  .fg-inp, .fg-inp input, .fg-inp select, .fg-inp textarea,
-  input.fg-inp, select.fg-inp, textarea.fg-inp {
-    font-size: 16px !important;
-    padding: 12px 14px !important;
-    border-radius: 12px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Labels */
-  .fg-label {
-    font-size: 10px !important;
-    margin-bottom: 5px !important;
-  }
-
-  /* Modal title */
-  .modal-title {
-    font-size: 16px !important;
-    margin-bottom: 16px !important;
-  }
-
-  /* Modal handle */
-  .modal-handle {
-    margin: 12px auto 16px !important;
-  }
-
-  /* Action buttons in modal */
-  .modal-actions, .fg-actions {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-    padding-top: 16px !important;
-  }
-  .modal-actions button, .fg-actions button {
-    width: 100% !important;
-    min-height: 48px !important;
-    font-size: 15px !important;
-  }
-
-  /* Volunteer assignment list inside modal */
-  #seVolList {
-    max-height: 200px !important;
-    overflow-y: auto !important;
-  }
-
-  /* Time/date row — stack vertically */
-  .sched-time-row {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-  }
-}
-
-/* Fix schedule view itself on mobile */
-@media(max-width:600px) {
-  #vSchedule {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    height: 100% !important;
-    padding-bottom: 80px !important;
-  }
-
-  /* Calendar grid — smaller cells */
-  #schedCalGrid {
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 2px !important;
-  }
-  #schedCalGrid > div {
-    min-height: 44px !important;
-    font-size: 11px !important;
-    padding: 4px !important;
-  }
-
-  /* Day events panel */
-  #schedDayPanel {
-    position: relative !important;
-    bottom: auto !important;
-    margin-top: 12px !important;
-    border-radius: 16px !important;
-    max-height: 45vh !important;
-    overflow-y: auto !important;
-  }
-
-  /* Schedule Event button */
-  .sched-add-btn, button[onclick*="openNewEvent"] {
-    width: 100% !important;
-    min-height: 44px !important;
-  }
-
-  /* Month navigation */
-  .sched-nav { padding: 10px 14px !important; }
-  .sched-month-title { font-size: 18px !important; }
-}
-
-
-/* ═══════════════════════════════════════════════════════════
-   REGISTRATION FORM FIXES
-   Constrains form width, fixes 2-col grid on mobile
-═══════════════════════════════════════════════════════════ */
-
-/* Modal sheet — proper max-width */
-.modal-sheet, .sheet {
   max-width: 600px !important;
-  margin: 0 auto !important;
-  width: 100% !important;
-}
-
-/* The newStudentModal and editStudentModal overlay */
-#newStudentModal, #editStudentModal, #schedEventModal {
-  align-items: flex-end !important;
-  justify-content: center !important;
-}
-#newStudentModal .sheet,
-#editStudentModal .sheet,
-#newStudentModal .modal-sheet,
-#editStudentModal .modal-sheet {
-  max-width: 600px !important;
-  width: 100% !important;
   max-height: 90vh !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  border-radius: 24px 24px 0 0 !important;
+  padding: 6px 22px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+  box-sizing: border-box !important;
 }
 
-/* fg-grid / form-grid — 2 cols on desktop, 1 col on mobile */
+/* ── Form grid: 2-col on desktop ── */
 .fg-grid, .form-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 12px !important;
+  margin-bottom: 12px !important;
 }
 .fg.full, .fg-full {
   grid-column: 1 / -1 !important;
 }
 
-@media(max-width:600px){
+/* ── Mobile: everything stacks, no zoom ── */
+@media (max-width: 600px) {
+
+  /* Sheet slides up from bottom, full-width, scrollable */
+  .modal-sheet {
+    max-width: 100% !important;
+    max-height: 85vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 4px 16px calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Handle */
+  .modal-handle {
+    margin: 10px auto 14px !important;
+  }
+
+  /* Title */
+  .modal-title {
+    font-size: 18px !important;
+    margin-bottom: 14px !important;
+    text-align: center !important;
+  }
+
+  /* Form grid → single column */
   .fg-grid, .form-grid {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
   .fg, .fg.full {
     grid-column: 1 !important;
-  }
-  .fg-inp, input.fg-input, select.fg-input {
-    font-size: 16px !important;
-    padding: 12px 14px !important;
-  }
-}
-
-/* The PWA kiosk form (ns_ fields in index.html) */
-#nsFormWrap, [class*="ns-form"], .kiosk-reg-form {
-  max-width: 560px !important;
-  margin: 0 auto !important;
-  width: 100% !important;
-}
-
-
-/* ═══════════════════════════════════════════════════════
-   FORM MOBILE FIX — Complete override for phones
-   Fixes stretched forms, input sizing, modal layout
-═══════════════════════════════════════════════════════ */
-@media(max-width:600px){
-
-  /* ── All modals: bottom sheet, full width, scrollable ── */
-  .modal {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-  .modal-sheet, .sheet {
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 88vh !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    border-radius: 20px 20px 0 0 !important;
-    padding: 16px 16px calc(env(safe-area-inset-bottom,16px) + 20px) !important;
-    box-sizing: border-box !important;
-  }
-
-  /* ── Form grids: force single column ── */
-  .fg-grid, .form-grid, [class*="fg-grid"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
     width: 100% !important;
   }
-  .fg, .fg.full, [class*="fg-"] {
-    width: 100% !important;
-    grid-column: 1 !important;
+
+  /* Labels */
+  .fg-label {
+    font-size: 10px !important;
+    margin-bottom: 4px !important;
   }
 
-  /* ── All inputs: prevent iOS auto-zoom (must be 16px+) ── */
-  input, select, textarea,
-  .fg-inp, input[type="text"], input[type="email"],
-  input[type="tel"], input[type="date"], input[type="time"],
-  input[type="password"], input[type="number"] {
+  /* Inputs: 16px prevents iOS auto-zoom */
+  .fg-inp,
+  input[type="text"], input[type="email"], input[type="tel"],
+  input[type="date"], input[type="time"], input[type="password"],
+  input[type="number"], select, textarea {
     font-size: 16px !important;
     padding: 12px 14px !important;
     border-radius: 12px !important;
@@ -1603,8 +1436,23 @@ button .bk-icon, a .bk-icon { margin-right:4px; }
     -webkit-appearance: none !important;
   }
 
-  /* ── Action buttons in forms ── */
+  /* Save / cancel buttons */
+  .modal-save {
+    padding: 14px !important;
+    font-size: 15px !important;
+    border-radius: 12px !important;
+    margin-top: 14px !important;
+  }
+  .modal-cancel {
+    padding: 12px !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    margin-top: 8px !important;
+  }
+
+  /* Action button rows */
   .fg-actions, .modal-actions, .action-row {
+    display: flex !important;
     flex-direction: column !important;
     gap: 10px !important;
   }
@@ -1614,11 +1462,46 @@ button .bk-icon, a .bk-icon { margin-right:4px; }
     font-size: 15px !important;
   }
 
-  /* ── Schedule form specific ── */
-  #schedEventModal .modal-sheet,
-  #newStudentModal .modal-sheet,
-  #editStudentModal .modal-sheet {
-    width: 100% !important;
-    max-width: 100% !important;
+  /* Volunteer list inside modal */
+  #seVolList {
+    max-height: 180px !important;
+    overflow-y: auto !important;
   }
+
+  /* Time/date fields stacked */
+  .sched-time-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+}
+
+/* ── Schedule view on mobile ── */
+@media (max-width: 600px) {
+  #vSchedule {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    height: 100% !important;
+    padding-bottom: 80px !important;
+  }
+  #schedCalGrid {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 2px !important;
+  }
+  #schedCalGrid > div {
+    min-height: 44px !important;
+    font-size: 11px !important;
+    padding: 4px !important;
+  }
+  #schedDayPanel {
+    position: relative !important;
+    bottom: auto !important;
+    margin-top: 12px !important;
+    border-radius: 16px !important;
+    max-height: 45vh !important;
+    overflow-y: auto !important;
+  }
+  .sched-add-btn { width: 100% !important; min-height: 44px !important; }
+  .sched-nav { padding: 10px 14px !important; }
+  .sched-month-title { font-size: 18px !important; }
 }
